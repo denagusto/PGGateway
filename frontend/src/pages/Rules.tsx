@@ -8,6 +8,7 @@ import { Badge } from '../components/ui/Badge'
 import { Input, Field } from '../components/ui/Input'
 import { TagInput } from '../components/ui/TagInput'
 import { Skeleton } from '../components/ui/Skeleton'
+import { useAuth } from '../lib/auth'
 import { EmptyState, ErrorState } from '../components/StateViews'
 import {
   fetchRules, createRule, updateRule, deleteRule,
@@ -27,6 +28,8 @@ const EMPTY: Draft = { name: '', report: '', score: 70, expression: '' }
 
 export default function Rules() {
   const qc = useQueryClient()
+  const { user } = useAuth()
+  const canManage = user?.role === 'ADMIN' || user?.role === 'ANALYST'
   const query = useQuery<FdsRule[], Error>({ queryKey: ['rules'], queryFn: fetchRules })
   const [creating, setCreating] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
@@ -56,9 +59,11 @@ export default function Rules() {
         title="FDS — Rules"
         subtitle="Aturan deteksi fraud/AML — formula dinamis (tambah, edit, hapus, aktif/nonaktif)"
         right={
-          <Button onClick={() => { setCreating((c) => !c); setEditingId(null) }} className="gap-1">
-            <Plus aria-hidden="true" className="h-4 w-4" /> Tambah Rule
-          </Button>
+          canManage ? (
+            <Button onClick={() => { setCreating((c) => !c); setEditingId(null) }} className="gap-1">
+              <Plus aria-hidden="true" className="h-4 w-4" /> Tambah Rule
+            </Button>
+          ) : null
         }
       />
 
@@ -109,6 +114,7 @@ export default function Rules() {
               <RuleRow
                 key={r.id}
                 rule={r}
+                canManage={canManage}
                 onToggle={() => update.mutate({ id: r.id, patch: { enabled: !r.enabled } })}
                 onEdit={() => { setEditingId(r.id); setCreating(false) }}
                 onDelete={() => {
@@ -127,6 +133,8 @@ export default function Rules() {
 
 function WatchlistCard() {
   const qc = useQueryClient()
+  const { user } = useAuth()
+  const canManage = user?.role === 'ADMIN' || user?.role === 'ANALYST'
   const query = useQuery<string[], Error>({ queryKey: ['watchlist'], queryFn: fetchWatchlist })
   const [account, setAccount] = useState('')
   const invalidate = () => {
@@ -150,20 +158,24 @@ function WatchlistCard() {
           Akun yang diblokir (mule, pihak tersanksi, DTTOT). Transaksi dari/ke akun ini langsung
           mendapat sinyal risiko tertinggi. Bisa ditambah/dihapus runtime — tanpa <i>redeploy</i>.
         </p>
-        <form
-          className="mb-4 flex gap-2"
-          onSubmit={(e) => { e.preventDefault(); if (account.trim()) add.mutate(account.trim()) }}
-        >
-          <Input
-            value={account}
-            onChange={(e) => setAccount(e.target.value)}
-            placeholder="mis. ACC-1234 atau nomor rekening"
-          />
-          <Button type="submit" className="gap-1 whitespace-nowrap" disabled={add.isPending || !account.trim()}>
-            <Plus aria-hidden="true" className="h-4 w-4" /> Tambah
-          </Button>
-        </form>
-        {add.error ? <p className="mb-2 text-small text-danger">{add.error.message}</p> : null}
+        {canManage ? (
+          <>
+            <form
+              className="mb-4 flex gap-2"
+              onSubmit={(e) => { e.preventDefault(); if (account.trim()) add.mutate(account.trim()) }}
+            >
+              <Input
+                value={account}
+                onChange={(e) => setAccount(e.target.value)}
+                placeholder="mis. ACC-1234 atau nomor rekening"
+              />
+              <Button type="submit" className="gap-1 whitespace-nowrap" disabled={add.isPending || !account.trim()}>
+                <Plus aria-hidden="true" className="h-4 w-4" /> Tambah
+              </Button>
+            </form>
+            {add.error ? <p className="mb-2 text-small text-danger">{add.error.message}</p> : null}
+          </>
+        ) : null}
 
         {query.isError ? (
           <ErrorState onRetry={() => query.refetch()} />
@@ -178,14 +190,16 @@ function WatchlistCard() {
             {query.data.map((acc) => (
               <li key={acc} className="flex items-center justify-between gap-2 py-2">
                 <code className="font-mono text-body text-ink">{acc}</code>
-                <Button
-                  variant="secondary"
-                  className="h-8 gap-1 px-2 text-small text-danger"
-                  disabled={remove.isPending}
-                  onClick={() => { if (confirm(`Hapus ${acc} dari daftar pantau?`)) remove.mutate(acc) }}
-                >
-                  <Trash2 aria-hidden="true" className="h-3.5 w-3.5" /> Hapus
-                </Button>
+                {canManage ? (
+                  <Button
+                    variant="secondary"
+                    className="h-8 gap-1 px-2 text-small text-danger"
+                    disabled={remove.isPending}
+                    onClick={() => { if (confirm(`Hapus ${acc} dari daftar pantau?`)) remove.mutate(acc) }}
+                  >
+                    <Trash2 aria-hidden="true" className="h-3.5 w-3.5" /> Hapus
+                  </Button>
+                ) : null}
               </li>
             ))}
           </ul>
@@ -197,11 +211,13 @@ function WatchlistCard() {
 
 function RuleRow({
   rule,
+  canManage,
   onToggle,
   onEdit,
   onDelete,
 }: {
   rule: FdsRule
+  canManage: boolean
   onToggle: () => void
   onEdit: () => void
   onDelete: () => void
@@ -213,11 +229,13 @@ function RuleRow({
           <div className="flex items-center gap-2">
             <span className="text-h2 font-semibold text-ink">{rule.name}</span>
             {rule.report ? <Badge tone="neutral">{rule.report}</Badge> : null}
+            {rule.enabled ? null : <Badge tone="neutral">nonaktif</Badge>}
             <span className="text-small text-muted">skor {rule.score}</span>
           </div>
           <code className="mt-1 block font-mono text-small text-muted">{rule.expression}</code>
           <span className="text-micro uppercase tracking-wide text-muted">id: {rule.id}</span>
         </div>
+        {canManage ? (
         <div className="flex shrink-0 items-center gap-2">
           <button
             type="button"
@@ -239,6 +257,7 @@ function RuleRow({
             <Trash2 aria-hidden="true" className="h-3.5 w-3.5" /> Hapus
           </Button>
         </div>
+        ) : null}
       </div>
     </Card>
   )

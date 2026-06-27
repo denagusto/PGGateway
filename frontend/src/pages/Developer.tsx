@@ -10,12 +10,15 @@ import { Select } from '../components/ui/Select'
 import { Skeleton } from '../components/ui/Skeleton'
 import { EmptyState, ErrorState } from '../components/StateViews'
 import { fetchKeys, createKey, revokeKey, API_BASE } from '../lib/api'
+import { useAuth } from '../lib/auth'
 import type { ApiKey, IssuedKey } from '../data/types'
 
 const SCOPES = ['ingest:write', 'transactions:read', 'alerts:read', 'rules:read']
 
 export default function Developer() {
   const qc = useQueryClient()
+  const { user } = useAuth()
+  const isAdmin = user?.role === 'ADMIN'
   const query = useQuery<ApiKey[], Error>({ queryKey: ['devkeys'], queryFn: fetchKeys })
   const [name, setName] = useState('')
   const [env, setEnv] = useState('sandbox')
@@ -62,7 +65,8 @@ export default function Developer() {
       ) : null}
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-        {/* create */}
+        {/* create — ADMIN only */}
+        {isAdmin ? (
         <Card>
           <CardHeader title="Buat API Key" />
           <CardBody>
@@ -92,9 +96,10 @@ export default function Developer() {
             </Button>
           </CardBody>
         </Card>
+        ) : null}
 
         {/* list */}
-        <Card className="lg:col-span-2">
+        <Card className={isAdmin ? 'lg:col-span-2' : 'lg:col-span-3'}>
           <CardHeader title="API Keys" action={<KeyRound aria-hidden="true" className="h-4 w-4 text-muted" />} />
           {query.isError ? (
             <ErrorState onRetry={() => query.refetch()} />
@@ -117,7 +122,7 @@ export default function Developer() {
                     <code className="block font-mono text-small text-muted">{k.prefix}••••••••</code>
                     <span className="text-micro text-muted">scopes: {k.scopes.join(', ')}</span>
                   </div>
-                  {k.status === 'active' ? (
+                  {k.status === 'active' && isAdmin ? (
                     <Button variant="secondary" className="h-8 gap-1 px-2 text-small text-danger" onClick={() => revoke.mutate(k.id)}>
                       <Trash2 aria-hidden="true" className="h-3.5 w-3.5" /> Cabut
                     </Button>

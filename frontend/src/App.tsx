@@ -6,7 +6,8 @@ import Reconciliation from './pages/Reconciliation'
 import Rules from './pages/Rules'
 import Developer from './pages/Developer'
 import Ledger from './pages/Ledger'
-import { FdsQueue, Placeholder } from './pages/Placeholder'
+import FdsQueue from './pages/FdsQueue'
+import { Placeholder } from './pages/Placeholder'
 
 export default function App() {
   return (

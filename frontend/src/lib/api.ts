@@ -8,6 +8,7 @@ import type {
   Channel,
   FraudAlertSummary,
   AlertDetail as AlertDetailT,
+  AlertRow,
   FdsRule,
   ApiKey,
   IssuedKey,
@@ -168,6 +169,27 @@ export async function fetchAlertSummaries(limit = 20): Promise<FraudAlertSummary
   if (!res.ok) throw new Error(`API ${res.status}`)
   const data = (await res.json()) as AlertDto[]
   return data.map(toSummary)
+}
+
+function toRow(a: AlertDto): AlertRow {
+  return {
+    id: a.alertId,
+    rule: a.rule,
+    ruleName: alertTitle(a),
+    report: a.report,
+    account: a.account,
+    amount: Math.round(a.amountMinor / 100),
+    score: a.score,
+    status: a.status,
+    waktu: new Date(a.createdAt).toLocaleTimeString('id-ID', { hour12: false }),
+  }
+}
+
+/** status: OPEN | CONFIRMED_FRAUD | FALSE_POSITIVE | ALL */
+export async function fetchAlertList(status = 'OPEN', limit = 100): Promise<AlertRow[]> {
+  const res = await fetch(`${API_BASE}/api/alerts?status=${encodeURIComponent(status)}&limit=${limit}`)
+  if (!res.ok) throw new Error(`API ${res.status}`)
+  return ((await res.json()) as AlertDto[]).map(toRow)
 }
 
 export async function fetchAlertDetail(id: string): Promise<AlertDetailT | null> {

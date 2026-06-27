@@ -18,6 +18,19 @@ export interface FraudAlertSummary {
   report?: string // 'LTKM' | 'LTKT' (PPATK)
 }
 
+// Row in the FDS alert queue
+export interface AlertRow {
+  id: string
+  rule: string
+  ruleName: string
+  report: string
+  account: string
+  amount: number
+  score: number
+  status: string // 'OPEN' | 'CONFIRMED_FRAUD' | 'FALSE_POSITIVE'
+  waktu: string // HH:MM:SS
+}
+
 export interface Kpi {
   label: string
   value: string

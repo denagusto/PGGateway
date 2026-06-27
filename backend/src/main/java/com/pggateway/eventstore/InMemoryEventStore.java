@@ -1,6 +1,7 @@
 package com.pggateway.eventstore;
 
 import com.pggateway.ingest.CanonicalEvent;
+import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
@@ -26,6 +27,7 @@ import java.util.concurrent.atomic.AtomicLong;
  * store lands (T2/T3).
  */
 @Component
+@Profile("!cockroach")
 public class InMemoryEventStore implements EventStore {
 
     private final Map<String, Long> seenIdempotency = new ConcurrentHashMap<>();   // idemKey -> seq

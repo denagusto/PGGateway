@@ -1,7 +1,5 @@
 package com.pggateway.bootstrap;
 
-import com.pggateway.eventstore.AppendOutcome;
-import com.pggateway.eventstore.AppendResult;
 import com.pggateway.eventstore.EventStore;
 import com.pggateway.fds.FraudDetectionService;
 import com.pggateway.ingest.CanonicalEvent;
@@ -85,11 +83,11 @@ public class SyntheticSeeder implements ApplicationRunner {
                 account, "ACC-merchant", "00", null);
         seq++;
         CanonicalEvent e = adapter.normalize(p);
-        AppendResult r = store.append(e);
-        if (r.outcome() == AppendOutcome.APPENDED) {
-            fds.inspect(e);   // synchronous at seed time so alerts exist right after startup
-            ledger.apply(e);  // project balances synchronously too
-            recon.addCounterparty(e.txnRef(), e.amountMinor()); // matching counterparty record
-        }
+        store.append(e); // durable + idempotent on idempotency key
+        // Rebuild in-memory projections from the seed scenario on every start (so the demo is
+        // populated even when the durable store already has the events from a previous run).
+        fds.inspect(e);
+        ledger.apply(e);
+        recon.addCounterparty(e.txnRef(), e.amountMinor());
     }
 }

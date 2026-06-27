@@ -14,6 +14,7 @@ const NAV: { to: string; label: string }[] = [
   { to: '/fds', label: 'FDS' },
   { to: '/fds/rules', label: 'Rules' },
   { to: '/rekonsiliasi', label: 'Rekonsiliasi' },
+  { to: '/developer', label: 'Developer' },
   { to: '/audit', label: 'Audit' },
 ]
 

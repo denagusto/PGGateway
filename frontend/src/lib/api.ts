@@ -9,9 +9,11 @@ import type {
   FraudAlertSummary,
   AlertDetail as AlertDetailT,
   FdsRule,
+  ApiKey,
+  IssuedKey,
 } from '../data/types'
 
-const API_BASE = (import.meta.env.VITE_API_BASE as string) || 'http://localhost:8081'
+export const API_BASE = (import.meta.env.VITE_API_BASE as string) || 'http://localhost:8081'
 
 /** Mirror of backend com.pggateway.ingest.CanonicalEvent */
 interface CanonicalEvent {
@@ -223,4 +225,31 @@ export async function updateRule(id: string, patch: Partial<FdsRule>): Promise<F
 export async function deleteRule(id: string): Promise<void> {
   const res = await fetch(`${API_BASE}/api/rules/${encodeURIComponent(id)}`, { method: 'DELETE' })
   if (!res.ok && res.status !== 204) throw new Error(`Gagal menghapus rule (${res.status})`)
+}
+
+// ---------- Developer / API keys ----------
+
+export async function fetchKeys(): Promise<ApiKey[]> {
+  const res = await fetch(`${API_BASE}/api/dev/keys`)
+  if (!res.ok) throw new Error(`API ${res.status}`)
+  return (await res.json()) as ApiKey[]
+}
+
+export async function createKey(body: {
+  name: string
+  env: string
+  scopes: string[]
+}): Promise<IssuedKey> {
+  const res = await fetch(`${API_BASE}/api/dev/keys`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  })
+  if (!res.ok) throw new Error(`Gagal membuat key (${res.status})`)
+  return (await res.json()) as IssuedKey
+}
+
+export async function revokeKey(id: string): Promise<void> {
+  const res = await fetch(`${API_BASE}/api/dev/keys/${encodeURIComponent(id)}`, { method: 'DELETE' })
+  if (!res.ok && res.status !== 204) throw new Error(`Gagal mencabut key (${res.status})`)
 }

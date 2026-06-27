@@ -59,6 +59,24 @@ export interface FdsRule {
   expression: string // SpEL formula over transaction features
 }
 
+// Developer / API keys (mirrors backend com.pggateway.developer.ApiKey)
+export interface ApiKey {
+  id: string
+  tenantId: string
+  name: string
+  prefix: string
+  scopes: string[]
+  env: string // 'sandbox' | 'production'
+  status: string // 'active' | 'revoked'
+  createdAt: string
+  lastUsedAt: string | null
+}
+export interface IssuedKey {
+  key: ApiKey
+  apiKey: string // shown once
+  secret: string // shown once
+}
+
 export type MismatchStatus = 'selisih nominal' | 'satu sisi' | 'cocok'
 
 export interface Mismatch {

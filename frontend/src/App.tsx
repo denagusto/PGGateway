@@ -4,6 +4,7 @@ import Dashboard from './pages/Dashboard'
 import AlertDetail from './pages/AlertDetail'
 import Reconciliation from './pages/Reconciliation'
 import Rules from './pages/Rules'
+import Developer from './pages/Developer'
 import { FdsQueue, Placeholder } from './pages/Placeholder'
 
 export default function App() {
@@ -16,6 +17,7 @@ export default function App() {
         <Route path="/fds/rules" element={<Rules />} />
         <Route path="/fds/:id" element={<AlertDetail />} />
         <Route path="/rekonsiliasi" element={<Reconciliation />} />
+        <Route path="/developer" element={<Developer />} />
         <Route path="/audit" element={<Placeholder title="Audit Log" />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>

@@ -105,6 +105,7 @@ interface AlertDto {
   channel: string
   amountMinor: number
   score: number
+  band: string
   rule: string
   ruleName: string
   report: string
@@ -151,6 +152,7 @@ function toDetail(a: AlertDto): AlertDetailT {
     status: a.status === 'OPEN' ? 'terbuka' : 'ditutup',
     prioritas,
     score: a.score,
+    band: a.band,
     rule: a.rule,
     report: a.report,
     konteks: {
@@ -181,6 +183,7 @@ function toRow(a: AlertDto): AlertRow {
     account: a.account,
     amount: Math.round(a.amountMinor / 100),
     score: a.score,
+    band: a.band,
     status: a.status,
     waktu: new Date(a.createdAt).toLocaleTimeString('id-ID', { hour12: false }),
   }

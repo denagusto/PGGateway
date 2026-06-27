@@ -11,7 +11,7 @@ import { EmptyState, ErrorState } from '../components/StateViews'
 import { Table, TBody, THead, TH, TR, TD } from '../components/ui/Table'
 import { cn } from '../lib/cn'
 import { formatRupiah } from '../lib/format'
-import { scoreMeta } from '../lib/score'
+import { scoreMeta, bandMeta } from '../lib/score'
 import { fetchAlertList } from '../lib/api'
 import type { AlertRow } from '../data/types'
 
@@ -89,7 +89,15 @@ export default function FdsQueue() {
                     </TD>
                     <TD numeric>{a.account}</TD>
                     <TD numeric align="right">{formatRupiah(a.amount)}</TD>
-                    <TD numeric align="right"><span className="font-semibold" style={{ color: meta.color }}>{a.score}</span></TD>
+                    <TD numeric align="right">
+                      <span className="font-semibold tnum" style={{ color: meta.color }}>{a.score}</span>
+                      <span
+                        className="ml-2 inline-block rounded px-1.5 py-0.5 text-micro font-bold"
+                        style={{ color: bandMeta(a.band).color, backgroundColor: bandMeta(a.band).color + '1a' }}
+                      >
+                        {bandMeta(a.band).label}
+                      </span>
+                    </TD>
                     <TD>{statusBadge(a.status)}</TD>
                     <TD>
                       <Button variant="secondary" className="h-8 px-2 text-small" onClick={() => navigate(`/fds/${a.id}`)}>

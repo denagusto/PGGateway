@@ -77,6 +77,7 @@ const alertDetails: Record<string, AlertDetail> = {
     status: 'terbuka',
     prioritas: 'tinggi',
     score: 88,
+    band: 'CRITICAL',
     rule: 'velocity_new_account',
     konteks: {
       jumlah: 1_200_000,

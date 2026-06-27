@@ -12,7 +12,7 @@ import { RiskGauge } from '../components/ui/RiskGauge'
 import { EmptyState, ErrorState } from '../components/StateViews'
 import { useScreenState } from '../lib/useScreenState'
 import { formatRupiah } from '../lib/format'
-import { scoreMeta } from '../lib/score'
+import { scoreMeta, bandMeta } from '../lib/score'
 import { fetchAlertDetail, postAlertVerdict } from '../lib/api'
 import type { AlertDetail as AlertDetailT } from '../data/types'
 
@@ -150,7 +150,15 @@ function ReadyDetail({
             <div className="flex items-start gap-4">
               <RiskGauge score={d.score} />
               <div className="flex-1">
-                <Badge tone="neutral" className="mb-2">{d.rule}</Badge>
+                <div className="mb-2 flex flex-wrap items-center gap-2">
+                  <span
+                    className="rounded px-2 py-0.5 text-micro font-bold"
+                    style={{ color: bandMeta(d.band).color, backgroundColor: bandMeta(d.band).color + '1a' }}
+                  >
+                    {bandMeta(d.band).label} · skor {d.score}
+                  </span>
+                  <Badge tone="neutral">{d.rule}</Badge>
+                </div>
                 <ul className="space-y-1.5">
                   {d.alasan.map((r) => (
                     <li key={r} className="flex items-center gap-2 text-body text-ink">

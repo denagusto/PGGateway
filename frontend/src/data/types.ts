@@ -27,6 +27,7 @@ export interface AlertRow {
   account: string
   amount: number
   score: number
+  band: string // LOW | MEDIUM | HIGH | CRITICAL
   status: string // 'OPEN' | 'CONFIRMED_FRAUD' | 'FALSE_POSITIVE'
   waktu: string // HH:MM:SS
 }
@@ -49,6 +50,7 @@ export interface AlertDetail {
   status: 'terbuka' | 'ditutup'
   prioritas: 'tinggi' | 'sedang' | 'rendah'
   score: number
+  band: string // LOW | MEDIUM | HIGH | CRITICAL
   rule: string
   report?: string // 'LTKM' | 'LTKT' (PPATK)
   konteks: {

@@ -25,3 +25,20 @@ export function scoreMeta(score: number): ScoreMeta {
   }
   return { level: 'rendah', label: 'Rendah', color: '#6b7280', textClass: 'text-muted' }
 }
+
+/**
+ * Maps the backend risk band (LOW/MEDIUM/HIGH/CRITICAL) to a short Indonesian label + color.
+ * The band is authoritative (computed by the scoring engine); colors stay consistent with score.
+ */
+export function bandMeta(band: string): { label: string; color: string } {
+  switch ((band || '').toUpperCase()) {
+    case 'CRITICAL':
+      return { label: 'KRITIS', color: '#b91c1c' }
+    case 'HIGH':
+      return { label: 'TINGGI', color: '#b45309' }
+    case 'MEDIUM':
+      return { label: 'SEDANG', color: '#a16207' }
+    default:
+      return { label: 'RENDAH', color: '#6b7280' }
+  }
+}

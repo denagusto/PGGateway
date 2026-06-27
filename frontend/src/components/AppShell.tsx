@@ -12,6 +12,7 @@ const NAV: { to: string; label: string }[] = [
   { to: '/', label: 'Dashboard' },
   { to: '/transaksi', label: 'Transaksi' },
   { to: '/fds', label: 'FDS' },
+  { to: '/fds/rules', label: 'Rules' },
   { to: '/rekonsiliasi', label: 'Rekonsiliasi' },
   { to: '/audit', label: 'Audit' },
 ]
@@ -30,7 +31,7 @@ function TopBar() {
             <NavLink
               key={item.to}
               to={item.to}
-              end={item.to === '/'}
+              end={item.to === '/' || item.to === '/fds'}
               className={({ isActive }) =>
                 cn(
                   'rounded-md px-3 py-1.5 text-body font-semibold transition-colors',

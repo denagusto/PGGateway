@@ -49,6 +49,16 @@ export interface AlertDetail {
   alasan: string[]
 }
 
+// FDS dynamic rule (mirrors backend com.pggateway.fds.rules.Rule)
+export interface FdsRule {
+  id: string
+  name: string
+  report: string // 'LTKM' | 'LTKT' | ''
+  enabled: boolean
+  score: number
+  expression: string // SpEL formula over transaction features
+}
+
 export type MismatchStatus = 'selisih nominal' | 'satu sisi' | 'cocok'
 
 export interface Mismatch {

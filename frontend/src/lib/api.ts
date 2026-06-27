@@ -8,6 +8,7 @@ import type {
   Channel,
   FraudAlertSummary,
   AlertDetail as AlertDetailT,
+  FdsRule,
 } from '../data/types'
 
 const API_BASE = (import.meta.env.VITE_API_BASE as string) || 'http://localhost:8081'
@@ -180,4 +181,46 @@ export async function postAlertVerdict(
     body: JSON.stringify({ verdict }),
   })
   if (!res.ok) throw new Error(`Verdict ${res.status}`)
+}
+
+// ---------- FDS rules (dynamic, CRUD) ----------
+
+export async function fetchRules(): Promise<FdsRule[]> {
+  const res = await fetch(`${API_BASE}/api/rules`)
+  if (!res.ok) throw new Error(`API ${res.status}`)
+  return (await res.json()) as FdsRule[]
+}
+
+async function errorMessage(res: Response, fallback: string): Promise<string> {
+  try {
+    const body = (await res.json()) as { error?: string }
+    return body.error ?? fallback
+  } catch {
+    return fallback
+  }
+}
+
+export async function createRule(rule: Partial<FdsRule>): Promise<FdsRule> {
+  const res = await fetch(`${API_BASE}/api/rules`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ enabled: true, score: 70, report: '', ...rule }),
+  })
+  if (!res.ok) throw new Error(await errorMessage(res, `Gagal membuat rule (${res.status})`))
+  return (await res.json()) as FdsRule
+}
+
+export async function updateRule(id: string, patch: Partial<FdsRule>): Promise<FdsRule> {
+  const res = await fetch(`${API_BASE}/api/rules/${encodeURIComponent(id)}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(patch),
+  })
+  if (!res.ok) throw new Error(await errorMessage(res, `Gagal memperbarui rule (${res.status})`))
+  return (await res.json()) as FdsRule
+}
+
+export async function deleteRule(id: string): Promise<void> {
+  const res = await fetch(`${API_BASE}/api/rules/${encodeURIComponent(id)}`, { method: 'DELETE' })
+  if (!res.ok && res.status !== 204) throw new Error(`Gagal menghapus rule (${res.status})`)
 }

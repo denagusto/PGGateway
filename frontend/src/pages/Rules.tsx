@@ -1,0 +1,221 @@
+import { useState } from 'react'
+import { Plus, Trash2, Pencil, Power, ShieldAlert } from 'lucide-react'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { PageHeader } from '../components/PageHeader'
+import { Card, CardBody, CardHeader } from '../components/ui/Card'
+import { Button } from '../components/ui/Button'
+import { Badge } from '../components/ui/Badge'
+import { Skeleton } from '../components/ui/Skeleton'
+import { EmptyState, ErrorState } from '../components/StateViews'
+import { fetchRules, createRule, updateRule, deleteRule } from '../lib/api'
+import type { FdsRule } from '../data/types'
+
+const FEATURES = [
+  '#amountMinor', '#amountRupiah', '#velocity10s', '#velocity24h',
+  '#subThreshold24h', '#aggregate24hMinor', '#channel', '#account',
+]
+
+type Draft = { name: string; report: string; score: number; expression: string }
+const EMPTY: Draft = { name: '', report: 'LTKM', score: 70, expression: '' }
+
+export default function Rules() {
+  const qc = useQueryClient()
+  const query = useQuery<FdsRule[], Error>({ queryKey: ['rules'], queryFn: fetchRules })
+  const [creating, setCreating] = useState(false)
+  const [editingId, setEditingId] = useState<string | null>(null)
+
+  const invalidate = () => {
+    qc.invalidateQueries({ queryKey: ['rules'] })
+    qc.invalidateQueries({ queryKey: ['alerts'] })
+  }
+
+  const create = useMutation({
+    mutationFn: (d: Draft) => createRule(d),
+    onSuccess: () => { setCreating(false); invalidate() },
+  })
+  const update = useMutation({
+    mutationFn: ({ id, patch }: { id: string; patch: Partial<FdsRule> }) => updateRule(id, patch),
+    onSuccess: () => { setEditingId(null); invalidate() },
+  })
+  const remove = useMutation({
+    mutationFn: (id: string) => deleteRule(id),
+    onSuccess: invalidate,
+  })
+
+  return (
+    <>
+      <PageHeader
+        title="FDS — Rules"
+        subtitle="Aturan deteksi fraud/AML — formula dinamis (tambah, edit, hapus, aktif/nonaktif)"
+        right={
+          <Button onClick={() => { setCreating((c) => !c); setEditingId(null) }} className="gap-1">
+            <Plus aria-hidden="true" className="h-4 w-4" /> Tambah Rule
+          </Button>
+        }
+      />
+
+      {creating ? (
+        <Card className="mb-6">
+          <CardHeader title="Rule baru" />
+          <CardBody>
+            <RuleForm
+              initial={EMPTY}
+              pending={create.isPending}
+              error={create.error?.message ?? null}
+              onCancel={() => setCreating(false)}
+              onSubmit={(d) => create.mutate(d)}
+            />
+          </CardBody>
+        </Card>
+      ) : null}
+
+      {query.isError ? (
+        <Card><ErrorState onRetry={() => query.refetch()} /></Card>
+      ) : query.isPending ? (
+        <div className="space-y-4">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <Card key={i}><div className="p-4"><Skeleton className="h-5 w-64" /><Skeleton className="mt-2 h-4 w-96" /></div></Card>
+          ))}
+        </div>
+      ) : query.data.length === 0 ? (
+        <Card>
+          <EmptyState icon={ShieldAlert} title="Belum ada rule" description="Tambah rule pertama untuk mulai mendeteksi." />
+        </Card>
+      ) : (
+        <div className="space-y-4">
+          {query.data.map((r) =>
+            editingId === r.id ? (
+              <Card key={r.id} className="border-accent">
+                <CardHeader title={`Edit: ${r.id}`} />
+                <CardBody>
+                  <RuleForm
+                    initial={{ name: r.name, report: r.report, score: r.score, expression: r.expression }}
+                    pending={update.isPending}
+                    error={update.error?.message ?? null}
+                    onCancel={() => setEditingId(null)}
+                    onSubmit={(d) => update.mutate({ id: r.id, patch: d })}
+                  />
+                </CardBody>
+              </Card>
+            ) : (
+              <RuleRow
+                key={r.id}
+                rule={r}
+                onToggle={() => update.mutate({ id: r.id, patch: { enabled: !r.enabled } })}
+                onEdit={() => { setEditingId(r.id); setCreating(false) }}
+                onDelete={() => {
+                  if (confirm(`Hapus rule "${r.name}"?`)) remove.mutate(r.id)
+                }}
+              />
+            ),
+          )}
+        </div>
+      )}
+    </>
+  )
+}
+
+function RuleRow({
+  rule,
+  onToggle,
+  onEdit,
+  onDelete,
+}: {
+  rule: FdsRule
+  onToggle: () => void
+  onEdit: () => void
+  onDelete: () => void
+}) {
+  return (
+    <Card className={rule.enabled ? '' : 'opacity-60'}>
+      <div className="flex flex-wrap items-start justify-between gap-3 p-4">
+        <div className="min-w-0">
+          <div className="flex items-center gap-2">
+            <span className="text-h2 font-semibold text-ink">{rule.name}</span>
+            {rule.report ? <Badge tone="neutral">{rule.report}</Badge> : null}
+            <span className="text-small text-muted">skor {rule.score}</span>
+          </div>
+          <code className="mt-1 block font-mono text-small text-muted">{rule.expression}</code>
+          <span className="text-micro uppercase tracking-wide text-muted">id: {rule.id}</span>
+        </div>
+        <div className="flex shrink-0 items-center gap-2">
+          <button
+            type="button"
+            onClick={onToggle}
+            className={
+              'inline-flex h-8 items-center gap-1 rounded-md border px-2 text-small font-semibold ' +
+              (rule.enabled
+                ? 'border-success/30 bg-success-bg text-success'
+                : 'border-line bg-surface text-muted')
+            }
+          >
+            <Power aria-hidden="true" className="h-3.5 w-3.5" />
+            {rule.enabled ? 'Aktif' : 'Nonaktif'}
+          </button>
+          <Button variant="secondary" className="h-8 gap-1 px-2 text-small" onClick={onEdit}>
+            <Pencil aria-hidden="true" className="h-3.5 w-3.5" /> Edit
+          </Button>
+          <Button variant="secondary" className="h-8 gap-1 px-2 text-small text-danger" onClick={onDelete}>
+            <Trash2 aria-hidden="true" className="h-3.5 w-3.5" /> Hapus
+          </Button>
+        </div>
+      </div>
+    </Card>
+  )
+}
+
+function RuleForm({
+  initial,
+  pending,
+  error,
+  onCancel,
+  onSubmit,
+}: {
+  initial: Draft
+  pending: boolean
+  error: string | null
+  onCancel: () => void
+  onSubmit: (d: Draft) => void
+}) {
+  const [d, setD] = useState<Draft>(initial)
+  const inputCls = 'w-full rounded-md border border-line bg-surface px-3 py-2 text-body text-ink'
+
+  return (
+    <div className="space-y-3">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+        <label className="sm:col-span-2">
+          <span className="text-small text-muted">Nama</span>
+          <input className={inputCls} value={d.name} onChange={(e) => setD({ ...d, name: e.target.value })} placeholder="mis. QRIS besar tak wajar" />
+        </label>
+        <label>
+          <span className="text-small text-muted">Laporan (PPATK)</span>
+          <select className={inputCls} value={d.report} onChange={(e) => setD({ ...d, report: e.target.value })}>
+            <option value="LTKM">LTKM</option>
+            <option value="LTKT">LTKT</option>
+            <option value="">— tidak ada —</option>
+          </select>
+        </label>
+      </div>
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-4">
+        <label>
+          <span className="text-small text-muted">Skor (0-100)</span>
+          <input type="number" min={0} max={100} className={inputCls} value={d.score} onChange={(e) => setD({ ...d, score: Number(e.target.value) })} />
+        </label>
+        <label className="sm:col-span-3">
+          <span className="text-small text-muted">Formula (SpEL)</span>
+          <input className={inputCls + ' font-mono'} value={d.expression} onChange={(e) => setD({ ...d, expression: e.target.value })} placeholder="#amountMinor >= 50000000000L" />
+        </label>
+      </div>
+      <p className="text-small text-muted">
+        Fitur tersedia: {FEATURES.map((f) => <code key={f} className="mr-1 font-mono">{f}</code>)}
+      </p>
+      {error ? <p className="text-small text-danger">{error}</p> : null}
+      <div className="flex gap-2">
+        <Button onClick={() => onSubmit(d)} disabled={pending || !d.name.trim() || !d.expression.trim()}>
+          {pending ? 'Menyimpan…' : 'Simpan'}
+        </Button>
+        <Button variant="secondary" onClick={onCancel} disabled={pending}>Batal</Button>
+      </div>
+    </div>
+  )
+}

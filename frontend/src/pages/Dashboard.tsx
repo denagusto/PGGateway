@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router-dom'
-import { Activity, ShieldCheck, Plus } from 'lucide-react'
+import { Activity, ShieldCheck, Plus, LayoutDashboard } from 'lucide-react'
 import { useQuery, useMutation, useQueryClient, type UseQueryResult } from '@tanstack/react-query'
 import { PageHeader } from '../components/PageHeader'
 import { StateToggle } from '../components/StateToggle'
@@ -77,8 +77,9 @@ export default function Dashboard() {
   return (
     <>
       <PageHeader
+        icon={LayoutDashboard}
         title="Dashboard"
-        subtitle="Pantauan langsung — PT Dompet Cepat (PJP)"
+        subtitle="Pantauan langsung transaksi, risiko, dan rekonsiliasi"
         right={<StateToggle state={state} onChange={setState} />}
       />
 

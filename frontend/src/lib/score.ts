@@ -18,12 +18,12 @@ export interface ScoreMeta {
 
 export function scoreMeta(score: number): ScoreMeta {
   if (score >= 80) {
-    return { level: 'tinggi', label: 'Tinggi — prioritaskan', color: '#b91c1c', textClass: 'text-danger' }
+    return { level: 'tinggi', label: 'Tinggi — prioritaskan', color: '#dc2626', textClass: 'text-danger' }
   }
   if (score >= 60) {
-    return { level: 'sedang', label: 'Sedang — tinjau', color: '#b45309', textClass: 'text-warning' }
+    return { level: 'sedang', label: 'Sedang — tinjau', color: '#d97706', textClass: 'text-warning' }
   }
-  return { level: 'rendah', label: 'Rendah', color: '#6b7280', textClass: 'text-muted' }
+  return { level: 'rendah', label: 'Rendah', color: '#6b7185', textClass: 'text-muted' }
 }
 
 /**
@@ -33,12 +33,12 @@ export function scoreMeta(score: number): ScoreMeta {
 export function bandMeta(band: string): { label: string; color: string } {
   switch ((band || '').toUpperCase()) {
     case 'CRITICAL':
-      return { label: 'KRITIS', color: '#b91c1c' }
+      return { label: 'KRITIS', color: '#dc2626' }
     case 'HIGH':
-      return { label: 'TINGGI', color: '#b45309' }
+      return { label: 'TINGGI', color: '#d97706' }
     case 'MEDIUM':
-      return { label: 'SEDANG', color: '#a16207' }
+      return { label: 'SEDANG', color: '#ca8a04' }
     default:
-      return { label: 'RENDAH', color: '#6b7280' }
+      return { label: 'RENDAH', color: '#6b7185' }
   }
 }

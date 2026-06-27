@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { KeyRound, Plus, Copy, Trash2, ExternalLink, BookOpen, ShieldAlert, ShieldCheck } from 'lucide-react'
+import { KeyRound, Plus, Copy, Trash2, ExternalLink, BookOpen, ShieldAlert, ShieldCheck, Code2 } from 'lucide-react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { PageHeader } from '../components/PageHeader'
 import { Card, CardBody, CardHeader } from '../components/ui/Card'
@@ -41,6 +41,7 @@ export default function Developer() {
   return (
     <>
       <PageHeader
+        icon={Code2}
         title="Developer"
         subtitle="Integrasi PJP — kelola API key, dokumentasi, dan cara terhubung"
       />

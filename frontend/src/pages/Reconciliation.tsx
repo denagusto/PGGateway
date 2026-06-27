@@ -1,4 +1,4 @@
-import { ShieldCheck, CheckCircle2 } from 'lucide-react'
+import { ShieldCheck, CheckCircle2, GitCompareArrows } from 'lucide-react'
 import { useQuery, useMutation, useQueryClient, type UseQueryResult } from '@tanstack/react-query'
 import { PageHeader } from '../components/PageHeader'
 import { Card, CardHeader } from '../components/ui/Card'
@@ -30,7 +30,7 @@ export default function Reconciliation() {
 
   return (
     <>
-      <PageHeader title="Rekonsiliasi" subtitle="Pencocokan 2-arah: ledger PGGateway vs counterparty" />
+      <PageHeader icon={GitCompareArrows} title="Rekonsiliasi" subtitle="Pencocokan 2-arah: ledger PGGateway vs counterparty" />
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         {summary.isPending || summary.isError ? (

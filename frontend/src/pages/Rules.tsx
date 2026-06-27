@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Plus, Trash2, Pencil, Power, ShieldAlert, Ban } from 'lucide-react'
+import { Plus, Trash2, Pencil, Power, ShieldAlert, Ban, SlidersHorizontal } from 'lucide-react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { PageHeader } from '../components/PageHeader'
 import { Card, CardBody, CardHeader } from '../components/ui/Card'
@@ -51,6 +51,7 @@ export default function Rules() {
   return (
     <>
       <PageHeader
+        icon={SlidersHorizontal}
         title="FDS — Rules"
         subtitle="Aturan deteksi fraud/AML — formula dinamis (tambah, edit, hapus, aktif/nonaktif)"
         right={

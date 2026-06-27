@@ -4,29 +4,31 @@ export default {
   theme: {
     extend: {
       colors: {
-        // base
-        bg: '#f6f7f9',
+        // base — cool, premium neutrals
+        bg: '#f5f6fb',
         surface: '#ffffff',
-        line: '#e5e7eb',
-        ink: '#1f2937',
-        muted: '#6b7280',
-        // brand
+        line: '#e7e8f0',
+        ink: '#1b1e2b',
+        muted: '#6b7185',
+        // brand — fresh indigo (premium fintech)
         primary: {
-          DEFAULT: '#1f3355',
-          700: '#16263f',
+          DEFAULT: '#4f46e5',
+          700: '#4338ca',
+          900: '#312e81',
+          50: '#eef2ff',
         },
-        accent: '#2563eb',
+        accent: '#4f46e5',
         // semantic status
         success: {
-          DEFAULT: '#15803d',
-          bg: '#dcfce7',
+          DEFAULT: '#059669',
+          bg: '#d1fae5',
         },
         warning: {
-          DEFAULT: '#b45309',
+          DEFAULT: '#d97706',
           bg: '#fef3c7',
         },
         danger: {
-          DEFAULT: '#b91c1c',
+          DEFAULT: '#dc2626',
           bg: '#fee2e2',
         },
       },

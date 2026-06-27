@@ -23,14 +23,16 @@ const NAV: { to: string; label: string }[] = [
 
 function TopBar() {
   return (
-    <header className="fixed inset-x-0 top-0 z-40 h-14 border-b border-white/5 bg-primary text-white">
-      <div className="flex h-full w-full items-center gap-6 px-6">
+    <header className="fixed inset-x-0 top-0 z-40 h-14 bg-gradient-to-r from-primary-900 via-primary-700 to-primary text-white shadow-[0_1px_3px_rgba(16,24,40,0.18)]">
+      <div className="flex h-full w-full items-center gap-7 px-6">
         <div className="flex items-center gap-2 font-bold">
-          <ShieldCheck aria-hidden="true" className="h-5 w-5 text-[#e8eef6]" />
+          <div className="grid h-7 w-7 place-items-center rounded-lg bg-white/12 ring-1 ring-inset ring-white/15">
+            <ShieldCheck aria-hidden="true" className="h-4 w-4 text-white" />
+          </div>
           <span className="text-h2 tracking-tight">PGGateway</span>
         </div>
 
-        <nav className="flex items-center gap-1" aria-label="Navigasi utama">
+        <nav className="flex items-center gap-0.5" aria-label="Navigasi utama">
           {NAV.map((item) => (
             <NavLink
               key={item.to}
@@ -40,8 +42,8 @@ function TopBar() {
                 cn(
                   'rounded-md px-3 py-1.5 text-body font-semibold transition-colors',
                   isActive
-                    ? 'bg-white/10 text-white'
-                    : 'text-[#c7d2e3] hover:bg-white/5 hover:text-white',
+                    ? 'bg-white/15 text-white shadow-inner'
+                    : 'text-white/65 hover:bg-white/8 hover:text-white',
                 )
               }
             >

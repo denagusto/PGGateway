@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useParams } from 'react-router-dom'
-import { ShieldCheck } from 'lucide-react'
+import { ShieldCheck, ShieldAlert } from 'lucide-react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { PageHeader } from '../components/PageHeader'
 import { StateToggle } from '../components/StateToggle'
@@ -58,6 +58,7 @@ export default function AlertDetail() {
   return (
     <>
       <PageHeader
+        icon={ShieldAlert}
         title="FDS — Detail Alert"
         subtitle="Konteks kasus, alasan penandaan, dan tindakan analyst"
         right={<StateToggle state={state} onChange={setState} />}

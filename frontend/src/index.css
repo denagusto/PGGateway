@@ -5,23 +5,23 @@
 @layer base {
   :root {
     /* base */
-    --bg: #f6f7f9;
+    --bg: #f5f6fb;
     --surface: #ffffff;
-    --line: #e5e7eb;
-    --ink: #1f2937;
-    --muted: #6b7280;
+    --line: #e7e8f0;
+    --ink: #1b1e2b;
+    --muted: #6b7185;
 
     /* brand */
-    --primary: #1f3355;
-    --primary-700: #16263f;
-    --accent: #2563eb;
+    --primary: #4f46e5;
+    --primary-700: #4338ca;
+    --accent: #4f46e5;
 
     /* semantic status */
-    --success: #15803d;
-    --success-bg: #dcfce7;
-    --warning: #b45309;
+    --success: #059669;
+    --success-bg: #d1fae5;
+    --warning: #d97706;
     --warning-bg: #fef3c7;
-    --danger: #b91c1c;
+    --danger: #dc2626;
     --danger-bg: #fee2e2;
   }
 

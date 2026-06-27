@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { ShieldCheck } from 'lucide-react'
+import { ShieldCheck, ShieldAlert } from 'lucide-react'
 import { useQuery } from '@tanstack/react-query'
 import { PageHeader } from '../components/PageHeader'
 import { Card } from '../components/ui/Card'
@@ -41,8 +41,9 @@ export default function FdsQueue() {
   return (
     <>
       <PageHeader
+        icon={ShieldAlert}
         title="FDS — Antrian Alert"
-        subtitle="Semua alert fraud/AML dari rule engine"
+        subtitle="Kasus risiko dari mesin skoring berlapis — diprioritaskan per band"
         right={
           <div className="inline-flex rounded-md border border-line bg-surface p-0.5">
             {FILTERS.map((f) => (

@@ -1,4 +1,4 @@
-import { Wallet, Activity } from 'lucide-react'
+import { Wallet, Activity, ArrowLeftRight } from 'lucide-react'
 import { useQuery } from '@tanstack/react-query'
 import { PageHeader } from '../components/PageHeader'
 import { Card, CardHeader } from '../components/ui/Card'
@@ -18,7 +18,7 @@ export default function Ledger() {
 
   return (
     <>
-      <PageHeader title="Transaksi / Ledger" subtitle="Saldo akun (double-entry) + transaksi terbaru" />
+      <PageHeader icon={ArrowLeftRight} title="Transaksi / Ledger" subtitle="Saldo akun (double-entry) + transaksi terbaru" />
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         <Card>

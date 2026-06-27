@@ -24,7 +24,7 @@ export default function Audit() {
 
   return (
     <>
-      <PageHeader title="Audit Log" subtitle="Jejak aksi sensitif — siapa, apa, kapan (immutable)" />
+      <PageHeader icon={ScrollText} title="Audit Log" subtitle="Jejak aksi sensitif — siapa, apa, kapan (immutable)" />
       <Card>
         {query.isError ? (
           <ErrorState onRetry={() => query.refetch()} />

@@ -91,6 +91,22 @@ export interface AccountBalance {
   txnCount: number
 }
 
+// Reconciliation (mirror backend com.pggateway.recon)
+export interface ReconMismatch {
+  id: string
+  txnRef: string
+  amountPjpMinor: number | null
+  amountCounterpartyMinor: number | null
+  diffMinor: number | null
+  type: string // 'selisih_nominal' | 'satu_sisi'
+  resolved: boolean
+}
+export interface ReconSummary {
+  matched: number
+  mismatchOpen: number
+  diffMinorTotal: number
+}
+
 export type MismatchStatus = 'selisih nominal' | 'satu sisi' | 'cocok'
 
 export interface Mismatch {

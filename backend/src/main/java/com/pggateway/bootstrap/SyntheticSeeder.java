@@ -8,6 +8,7 @@ import com.pggateway.ingest.CanonicalEvent;
 import com.pggateway.ingest.mirror.MirrorIngestAdapter;
 import com.pggateway.ingest.mirror.MirrorPayload;
 import com.pggateway.ledger.LedgerProjectionService;
+import com.pggateway.recon.ReconciliationService;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -35,15 +36,18 @@ public class SyntheticSeeder implements ApplicationRunner {
     private final EventStore store;
     private final FraudDetectionService fds;
     private final LedgerProjectionService ledger;
+    private final ReconciliationService recon;
     private final Random rnd = new Random(42);
     private int seq = 0;
 
     public SyntheticSeeder(MirrorIngestAdapter adapter, EventStore store,
-                           FraudDetectionService fds, LedgerProjectionService ledger) {
+                           FraudDetectionService fds, LedgerProjectionService ledger,
+                           ReconciliationService recon) {
         this.adapter = adapter;
         this.store = store;
         this.fds = fds;
         this.ledger = ledger;
+        this.recon = recon;
     }
 
     @Override
@@ -67,6 +71,11 @@ public class SyntheticSeeder implements ApplicationRunner {
         for (int k = 0; k < 7; k++) {
             seed("ACC-99", "QRIS_MPM", (rnd.nextInt(200) + 50L) * 1000L);
         }
+
+        // Reconciliation demo: introduce a few discrepancies vs the counterparty feed
+        recon.addCounterparty("REF-23", 59_500_000_000L);    // ACC-BIG: counterparty Rp 595jt vs ledger Rp 600jt -> selisih
+        recon.removeCounterparty("REF-24");                  // present on ledger only -> satu sisi
+        recon.addCounterparty("REF-GHOST", 25_000_000_000L); // counterparty only (no ledger) -> satu sisi
     }
 
     private void seed(String account, String type, long rupiah) {
@@ -80,6 +89,7 @@ public class SyntheticSeeder implements ApplicationRunner {
         if (r.outcome() == AppendOutcome.APPENDED) {
             fds.inspect(e);   // synchronous at seed time so alerts exist right after startup
             ledger.apply(e);  // project balances synchronously too
+            recon.addCounterparty(e.txnRef(), e.amountMinor()); // matching counterparty record
         }
     }
 }

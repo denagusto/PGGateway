@@ -1,196 +1,109 @@
-import { useState } from 'react'
-import { CheckCircle2 } from 'lucide-react'
+import { ShieldCheck, CheckCircle2 } from 'lucide-react'
+import { useQuery, useMutation, useQueryClient, type UseQueryResult } from '@tanstack/react-query'
 import { PageHeader } from '../components/PageHeader'
-import { StateToggle } from '../components/StateToggle'
+import { Card, CardHeader } from '../components/ui/Card'
 import { StatCard } from '../components/ui/StatCard'
-import { Card } from '../components/ui/Card'
+import { Badge } from '../components/ui/Badge'
 import { Button } from '../components/ui/Button'
 import { Skeleton } from '../components/ui/Skeleton'
 import { EmptyState, ErrorState } from '../components/StateViews'
-import { ReconStatusBadge } from '../components/StatusBadge'
 import { Table, TBody, THead, TH, TR, TD } from '../components/ui/Table'
-import { useScreenState } from '../lib/useScreenState'
-import { useMockQuery } from '../lib/useMockQuery'
-import { formatRupiah } from '../lib/format'
-import { mismatches, reconKpis } from '../data/mock'
-import type { Kpi, Mismatch } from '../data/types'
+import { formatRupiah, formatInt } from '../lib/format'
+import { fetchMismatches, fetchReconSummary, resolveMismatch } from '../lib/api'
+import type { ReconMismatch, ReconSummary } from '../data/types'
 
-interface ReconData {
-  kpis: Kpi[]
-  rows: Mismatch[]
+function rupiahOrDash(minor: number | null): string {
+  return minor == null ? '— tidak ada —' : formatRupiah(minor / 100)
 }
 
 export default function Reconciliation() {
-  const { state, setState } = useScreenState()
-  const [resolvedIds, setResolvedIds] = useState<Set<string>>(new Set())
-
-  const query = useMockQuery<ReconData>(
-    ['recon'],
-    { kpis: reconKpis, rows: mismatches },
-    { kpis: reconKpis, rows: [] },
-    state,
-  )
-
-  const resolve = (id: string) =>
-    setResolvedIds((prev) => new Set(prev).add(id))
+  const qc = useQueryClient()
+  const summary = useQuery<ReconSummary, Error>({ queryKey: ['recon-summary'], queryFn: fetchReconSummary })
+  const mismatches = useQuery<ReconMismatch[], Error>({ queryKey: ['recon-mismatches'], queryFn: fetchMismatches })
+  const resolve = useMutation({
+    mutationFn: (ref: string) => resolveMismatch(ref),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['recon-mismatches'] })
+      qc.invalidateQueries({ queryKey: ['recon-summary'] })
+    },
+  })
 
   return (
     <>
-      <PageHeader
-        title="Rekonsiliasi"
-        subtitle="Pencocokan 2 arah ledger PJP vs counterparty"
-        right={<StateToggle state={state} onChange={setState} />}
-      />
+      <PageHeader title="Rekonsiliasi" subtitle="Pencocokan 2-arah: ledger PGGateway vs counterparty" />
 
-      {/* Summary stats — 3 cards */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-        {query.isPending
-          ? Array.from({ length: 3 }).map((_, i) => (
-              <Card key={i} className="p-4">
-                <Skeleton className="h-3 w-28" />
-                <Skeleton className="mt-2 h-7 w-24" />
-                <Skeleton className="mt-2 h-3 w-20" />
-              </Card>
-            ))
-          : (query.data?.kpis ?? reconKpis).map((kpi) => (
-              <StatCard
-                key={kpi.label}
-                label={kpi.label}
-                value={kpi.value}
-                sub={kpi.sub}
-                subTone={kpi.subTone}
-                valueTone={kpi.valueTone}
-              />
-            ))}
+        {summary.isPending || summary.isError ? (
+          Array.from({ length: 3 }).map((_, i) => (
+            <Card key={i} className="p-4"><Skeleton className="h-3 w-24" /><Skeleton className="mt-2 h-7 w-20" /></Card>
+          ))
+        ) : (
+          <>
+            <StatCard label="Cocok" value={formatInt(summary.data.matched)} sub="transaksi termatch" subTone="success" valueTone="success" />
+            <StatCard label="Mismatch terbuka" value={formatInt(summary.data.mismatchOpen)} sub="perlu ditinjau" subTone="warning" valueTone="warning" />
+            <StatCard label="Selisih nominal" value={formatRupiah(summary.data.diffMinorTotal / 100)} sub="akumulasi" subTone="danger" valueTone="danger" />
+          </>
+        )}
       </div>
 
-      {/* Mismatch table */}
       <Card className="mt-6">
-        <FilterBar />
-        <ReconTable query={query} resolvedIds={resolvedIds} onResolve={resolve} />
+        <CardHeader title="Mismatch" />
+        <MismatchTable query={mismatches} onResolve={(ref) => resolve.mutate(ref)} resolving={resolve.isPending} />
       </Card>
     </>
   )
 }
 
-function FilterBar() {
-  return (
-    <div className="flex flex-wrap items-center gap-2 border-b border-line p-3">
-      <input
-        type="text"
-        placeholder="Cari txnRef…"
-        className="h-8 rounded-sm border border-line bg-surface px-2 text-small text-ink placeholder:text-muted"
-        aria-label="Cari txnRef"
-      />
-      <SelectChip label="Channel: semua" />
-      <SelectChip label="Window: hari ini" />
-      <SelectChip label="Status: mismatch" />
-    </div>
-  )
-}
-
-function SelectChip({ label }: { label: string }) {
-  return (
-    <span className="inline-flex h-8 items-center gap-1 rounded-sm border border-line bg-surface px-2 text-small text-muted">
-      {label} <span aria-hidden="true">▾</span>
-    </span>
-  )
-}
-
-function ReconTable({
+function MismatchTable({
   query,
-  resolvedIds,
   onResolve,
+  resolving,
 }: {
-  query: ReturnType<typeof useMockQuery<ReconData>>
-  resolvedIds: Set<string>
-  onResolve: (id: string) => void
+  query: UseQueryResult<ReconMismatch[], Error>
+  onResolve: (ref: string) => void
+  resolving: boolean
 }) {
   if (query.isPending) {
     return (
       <div className="space-y-2 p-4">
-        {Array.from({ length: 5 }).map((_, i) => (
-          <Skeleton key={i} className="h-9 w-full" />
-        ))}
+        {Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-9 w-full" />)}
       </div>
     )
   }
-  if (query.isError) {
-    return <ErrorState onRetry={() => query.refetch()} />
-  }
-  const rows = query.data?.rows ?? []
-  if (rows.length === 0) {
+  if (query.isError) return <ErrorState onRetry={() => query.refetch()} />
+  if (query.data.length === 0) {
     return (
-      <EmptyState
-        icon={CheckCircle2}
-        title="Tidak ada mismatch"
-        description="Semua transaksi cocok untuk window ini. Tidak ada yang perlu diselesaikan."
-      />
+      <EmptyState icon={ShieldCheck} title="Semua transaksi cocok" description="Tidak ada mismatch terbuka. Ledger dan counterparty selaras." />
     )
   }
   return (
     <Table>
       <THead>
         <TR>
-          <TH>txnRef</TH>
-          <TH align="right">Jumlah</TH>
-          <TH align="right">Sisi PJP</TH>
-          <TH align="right">Sisi counterparty</TH>
-          <TH align="right">Selisih</TH>
-          <TH>Window</TH>
-          <TH>Status</TH>
-          <TH>Aksi</TH>
+          <TH>txnRef</TH><TH>Jenis</TH>
+          <TH align="right">Sisi PJP</TH><TH align="right">Sisi counterparty</TH><TH align="right">Selisih</TH>
+          <TH></TH>
         </TR>
       </THead>
       <TBody>
-        {rows.map((r) => {
-          const isAmountMismatch = r.status === 'selisih nominal'
-          const isResolved = resolvedIds.has(r.id)
-          return (
-            <TR key={r.id} highlight={isAmountMismatch ? 'warning' : undefined}>
-              <TD numeric className="font-semibold">{r.txnRef}</TD>
-              <TD numeric align="right">{formatRupiah(r.jumlah)}</TD>
-              <TD numeric align="right">{formatRupiah(r.sisiPjp)}</TD>
-              <TD numeric align="right">
-                {r.sisiCounterparty === null ? (
-                  <span className="text-muted">— tidak ada —</span>
-                ) : (
-                  formatRupiah(r.sisiCounterparty)
-                )}
-              </TD>
-              <TD numeric align="right">
-                {r.selisih === null ? (
-                  <span className="font-semibold text-warning">satu sisi</span>
-                ) : r.selisih === 0 ? (
-                  <span className="text-success">cocok</span>
-                ) : (
-                  <span className="font-semibold text-danger">
-                    {formatRupiah(r.selisih)}
-                  </span>
-                )}
-              </TD>
-              <TD numeric className="text-muted">{r.window}</TD>
-              <TD>
-                <ReconStatusBadge status={r.status} />
-              </TD>
-              <TD>
-                {r.status === 'cocok' ? (
-                  <span className="text-small text-muted">—</span>
-                ) : isResolved ? (
-                  <span className="text-small font-semibold text-success">Selesai</span>
-                ) : (
-                  <Button
-                    variant="secondary"
-                    className="h-8 px-2"
-                    onClick={() => onResolve(r.id)}
-                  >
-                    Selesaikan
-                  </Button>
-                )}
-              </TD>
-            </TR>
-          )
-        })}
+        {query.data.map((m) => (
+          <TR key={m.id} className={m.type === 'selisih_nominal' ? 'bg-warning-bg' : ''}>
+            <TD numeric>{m.txnRef}</TD>
+            <TD>
+              {m.type === 'selisih_nominal'
+                ? <Badge tone="danger">selisih nominal</Badge>
+                : <Badge tone="warning">satu sisi</Badge>}
+            </TD>
+            <TD numeric align="right" className={m.amountPjpMinor == null ? 'text-muted' : ''}>{rupiahOrDash(m.amountPjpMinor)}</TD>
+            <TD numeric align="right" className={m.amountCounterpartyMinor == null ? 'text-muted' : ''}>{rupiahOrDash(m.amountCounterpartyMinor)}</TD>
+            <TD numeric align="right" className="text-danger">{m.diffMinor == null ? '—' : formatRupiah(Math.abs(m.diffMinor) / 100)}</TD>
+            <TD>
+              <Button variant="secondary" className="h-8 gap-1 px-2 text-small" disabled={resolving} onClick={() => onResolve(m.txnRef)}>
+                <CheckCircle2 aria-hidden="true" className="h-3.5 w-3.5" /> Selesaikan
+              </Button>
+            </TD>
+          </TR>
+        ))}
       </TBody>
     </Table>
   )

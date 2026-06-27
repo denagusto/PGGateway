@@ -13,6 +13,8 @@ import type {
   IssuedKey,
   Stats,
   AccountBalance,
+  ReconMismatch,
+  ReconSummary,
 } from '../data/types'
 
 export const API_BASE = (import.meta.env.VITE_API_BASE as string) || 'http://localhost:8081'
@@ -268,4 +270,25 @@ export async function fetchAccounts(limit = 50): Promise<AccountBalance[]> {
   const res = await fetch(`${API_BASE}/api/accounts?limit=${limit}`)
   if (!res.ok) throw new Error(`API ${res.status}`)
   return (await res.json()) as AccountBalance[]
+}
+
+// ---------- Reconciliation ----------
+
+export async function fetchMismatches(): Promise<ReconMismatch[]> {
+  const res = await fetch(`${API_BASE}/api/reconciliation/mismatches`)
+  if (!res.ok) throw new Error(`API ${res.status}`)
+  return (await res.json()) as ReconMismatch[]
+}
+
+export async function fetchReconSummary(): Promise<ReconSummary> {
+  const res = await fetch(`${API_BASE}/api/reconciliation/summary`)
+  if (!res.ok) throw new Error(`API ${res.status}`)
+  return (await res.json()) as ReconSummary
+}
+
+export async function resolveMismatch(txnRef: string): Promise<void> {
+  const res = await fetch(`${API_BASE}/api/reconciliation/${encodeURIComponent(txnRef)}/resolve`, {
+    method: 'POST',
+  })
+  if (!res.ok && res.status !== 204) throw new Error(`Gagal menyelesaikan (${res.status})`)
 }

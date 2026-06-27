@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { KeyRound, Plus, Copy, Trash2, ExternalLink, BookOpen, ShieldAlert } from 'lucide-react'
+import { KeyRound, Plus, Copy, Trash2, ExternalLink, BookOpen, ShieldAlert, ShieldCheck } from 'lucide-react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { PageHeader } from '../components/PageHeader'
 import { Card, CardBody, CardHeader } from '../components/ui/Card'
@@ -130,6 +130,53 @@ export default function Developer() {
         </Card>
       </div>
 
+      {/* SNAP HMAC signing — the real, enforced auth on the ingest path */}
+      <Card className="mt-6 border-accent/40">
+        <CardHeader title="Tanda tangan SNAP (HMAC)" action={<ShieldCheck aria-hidden="true" className="h-4 w-4 text-accent" />} />
+        <CardBody>
+          <p className="text-body text-ink">
+            Setiap request ke <code className="font-mono">/api/ingest/*</code> wajib ditandatangani.
+            Gateway menghitung ulang signature dan menolak body yang diubah, request yang basi (di luar ±5 menit),
+            atau signature yang dipakai ulang (<i>replay</i>). Tenant (PJP) ditentukan dari kredensial yang terverifikasi.
+          </p>
+
+          <div className="mt-3 grid grid-cols-1 gap-4 md:grid-cols-2">
+            <div>
+              <span className="text-small text-muted">Header wajib</span>
+              <ul className="mt-1 space-y-1 text-small text-ink">
+                <li><code className="font-mono">X-CLIENT-KEY</code> — key <code className="font-mono">pgk_…</code> milik PJP</li>
+                <li><code className="font-mono">X-TIMESTAMP</code> — ISO-8601 + offset (atau <code className="font-mono">Z</code>)</li>
+                <li><code className="font-mono">X-SIGNATURE</code> — Base64(HMAC-SHA512)</li>
+              </ul>
+              <span className="mt-3 block text-small text-muted">String-to-sign</span>
+              <pre className="mt-1 overflow-x-auto rounded-md bg-ink/5 p-2 font-mono text-micro text-ink">{`{METHOD}:{path}:{X-CLIENT-KEY}:
+  {lowerHex(SHA-256(body))}:{X-TIMESTAMP}`}</pre>
+            </div>
+            <div>
+              <span className="text-small text-muted">Kredensial sandbox (coba langsung)</span>
+              <Secret label="X-CLIENT-KEY" value="pgk_sandbox_DEMOKEY" />
+              <Secret label="Client Secret" value="pgs_sandbox_DEMOSECRET" />
+              <p className="mt-2 text-micro text-muted">Sandbox · tenant <code className="font-mono">PJP-DEMO</code> · hanya untuk uji coba.</p>
+            </div>
+          </div>
+
+          <p className="mt-4 text-small text-muted">Quickstart — kirim transaksi bertanda tangan (bash + openssl):</p>
+          <pre className="mt-1 overflow-x-auto rounded-md bg-ink/5 p-3 font-mono text-small text-ink">{`KEY=pgk_sandbox_DEMOKEY
+SECRET=pgs_sandbox_DEMOSECRET
+TS=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+BODY='{"externalId":"REF-1","partnerReferenceNo":"REF-1","transactionType":"QRIS_MPM","amount":{"value":"75000.00","currency":"IDR"},"sourceAccountNo":"ACC-1"}'
+HASH=$(printf '%s' "$BODY" | openssl dgst -sha256 | sed 's/^.* //')
+STS="POST:/api/ingest/mirror:$KEY:$HASH:$TS"
+SIG=$(printf '%s' "$STS" | openssl dgst -sha512 -hmac "$SECRET" -binary | base64)
+curl -X POST ${API_BASE}/api/ingest/mirror \\
+  -H "X-CLIENT-KEY: $KEY" -H "X-TIMESTAMP: $TS" -H "X-SIGNATURE: $SIG" \\
+  -H "Content-Type: application/json" -d "$BODY"`}</pre>
+          <p className="mt-2 text-micro text-muted">
+            Resep mesin: <code className="font-mono">{API_BASE}/api/dev/snap-guide</code>
+          </p>
+        </CardBody>
+      </Card>
+
       {/* docs + how to connect */}
       <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-2">
         <Card>
@@ -140,14 +187,9 @@ export default function Developer() {
               Buka Swagger UI <ExternalLink aria-hidden="true" className="h-3.5 w-3.5" />
             </a>
             <p className="mt-1 text-small text-muted">Spec OpenAPI: <code className="font-mono">{API_BASE}/v3/api-docs</code> (sumber SDK).</p>
-            <p className="mt-3 text-small text-muted">Quickstart — kirim transaksi (mirror):</p>
-            <pre className="mt-1 overflow-x-auto rounded-md bg-ink/5 p-3 font-mono text-small text-ink">{`curl -X POST ${API_BASE}/api/ingest/mirror \\
-  -H "X-API-Key: <API_KEY_ANDA>" \\
-  -H "Content-Type: application/json" \\
-  -d '{"externalId":"REF-1","partnerReferenceNo":"REF-1",
-       "transactionType":"QRIS_MPM",
-       "amount":{"value":"75000.00","currency":"IDR"},
-       "sourceAccountNo":"ACC-1"}'`}</pre>
+            <p className="mt-3 text-small text-muted">Cek kredensial — kirim key sebagai <code className="font-mono">X-API-Key</code>:</p>
+            <pre className="mt-1 overflow-x-auto rounded-md bg-ink/5 p-3 font-mono text-small text-ink">{`curl ${API_BASE}/api/dev/ping \\
+  -H "X-API-Key: <API_KEY_ANDA>"`}</pre>
           </CardBody>
         </Card>
 
@@ -158,8 +200,8 @@ export default function Developer() {
               <li>Buat API key (sandbox) di atas, simpan key + secret.</li>
               <li>Pilih jalur integrasi:
                 <ul className="mt-1 list-disc pl-5 text-small text-muted">
-                  <li><b>Panggil API kita</b> (SNAP-compliant) dengan header <code className="font-mono">X-API-Key</code> (+ HMAC signing & mTLS untuk produksi).</li>
-                  <li><b>Mirror webhook</b> — forward salinan transaksi ke <code className="font-mono">/api/ingest/mirror</code>.</li>
+                  <li><b>Mirror webhook</b> — forward salinan transaksi ke <code className="font-mono">/api/ingest/mirror</code>, ditandatangani dengan SNAP HMAC (lihat di atas).</li>
+                  <li><b>Panggil API kita</b> (SNAP-compliant) dengan signature yang sama (+ mTLS untuk produksi).</li>
                 </ul>
               </li>
               <li>Uji di sandbox (data sintetis), lalu minta key production.</li>

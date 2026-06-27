@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -51,6 +52,29 @@ public class DeveloperController {
         boolean ok = keys.revoke(id);
         if (ok) audit.append("key.revoke", id, "");
         return ok ? ResponseEntity.noContent().build() : ResponseEntity.notFound().build();
+    }
+
+    /**
+     * Machine-readable SNAP signing guide for the portal / Swagger: the exact string-to-sign,
+     * required headers, and the sandbox credentials an integrator can use to try it immediately.
+     */
+    @GetMapping("/snap-guide")
+    public Map<String, Object> snapGuide() {
+        Map<String, Object> sandbox = new LinkedHashMap<>();
+        sandbox.put("clientKey", "pgk_sandbox_DEMOKEY");
+        sandbox.put("clientSecret", "pgs_sandbox_DEMOSECRET");
+        sandbox.put("tenantId", "PJP-DEMO");
+        Map<String, Object> g = new LinkedHashMap<>();
+        g.put("endpoint", "POST /api/ingest/mirror");
+        g.put("headers", List.of("X-CLIENT-KEY", "X-TIMESTAMP (ISO-8601 + offset)", "X-SIGNATURE"));
+        g.put("stringToSign", "{HTTP-METHOD}:{path}:{X-CLIENT-KEY}:{lowerHex(SHA-256(body))}:{X-TIMESTAMP}");
+        g.put("signature", "Base64( HMAC-SHA512( stringToSign, clientSecret ) )");
+        g.put("rules", List.of(
+                "Timestamp wajib dalam rentang ±5 menit dari waktu server",
+                "Tandatangani byte body persis seperti yang dikirim (body di-hash apa adanya)",
+                "Setiap signature hanya boleh dipakai sekali — replay ditolak"));
+        g.put("sandbox", sandbox);
+        return g;
     }
 
     /** Demo of authenticated access: send your key as X-API-Key. */

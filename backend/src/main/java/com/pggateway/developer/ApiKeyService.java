@@ -16,35 +16,50 @@ import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Issues, lists, revokes and verifies tenant API keys. The full key and secret are shown to
- * the integrator EXACTLY ONCE at creation; only the SHA-256 hash of the key is stored, so a
- * leaked store can't reveal credentials. In-memory now; later CockroachDB.
- *
- * Single-tenant demo (tenantId fixed). Multi-tenant scoping + HMAC request signing is the
- * next step (see docs/developer-integration-plan.md).
+ * the integrator EXACTLY ONCE at creation; only the SHA-256 hash of the key is kept for the
+ * fast bearer check (X-API-Key). The client secret is retained so the gateway can recompute the
+ * SNAP HMAC signature — in production that secret lives encrypted at rest / HSM-wrapped, not in
+ * a plain map. Each key belongs to a tenant (PJP), which is how requests are scoped.
  */
 @Service
 public class ApiKeyService {
 
-    private static final String TENANT = "tenant-demo";
+    private static final String DEFAULT_TENANT = "PJP-DEMO";
     private static final List<String> DEFAULT_SCOPES =
             List.of("ingest:write", "transactions:read", "alerts:read");
 
     private final Map<String, ApiKey> byId = new ConcurrentHashMap<>();
     private final Map<String, String> idByHash = new ConcurrentHashMap<>(); // sha256(key) -> keyId
+    private final Map<String, String> secretById = new ConcurrentHashMap<>(); // keyId -> client secret
     private final SecureRandom rnd = new SecureRandom();
 
     public IssuedKey create(String name, String env, List<String> scopes) {
+        return create(name, env, scopes, DEFAULT_TENANT);
+    }
+
+    public IssuedKey create(String name, String env, List<String> scopes, String tenantId) {
         String e = (env == null || env.isBlank()) ? "sandbox" : env;
         String apiKey = "pgk_" + e + "_" + token(24);
         String secret = "pgs_" + token(32);
+        return register(name, e, scopes, tenantId, apiKey, secret);
+    }
+
+    /**
+     * Register a credential with caller-supplied key/secret. Used by the dev seeder to publish a
+     * fixed, well-known sandbox credential so the SNAP signature flow is demonstrable end-to-end.
+     */
+    public IssuedKey register(String name, String env, List<String> scopes, String tenantId,
+                              String apiKey, String secret) {
+        String e = (env == null || env.isBlank()) ? "sandbox" : env;
         String id = UUID.randomUUID().toString();
         String prefix = apiKey.substring(0, Math.min(16, apiKey.length()));
-        ApiKey k = new ApiKey(id, TENANT,
+        ApiKey k = new ApiKey(id, (tenantId == null || tenantId.isBlank()) ? DEFAULT_TENANT : tenantId,
                 name == null ? "" : name, prefix,
                 (scopes == null || scopes.isEmpty()) ? DEFAULT_SCOPES : scopes,
                 e, "active", Instant.now(), null);
         byId.put(id, k);
         idByHash.put(sha256(apiKey), id);
+        secretById.put(id, secret);
         return new IssuedKey(k, apiKey, secret);
     }
 
@@ -73,6 +88,24 @@ public class ApiKeyService {
         return Optional.of(used);
     }
 
+    /**
+     * Resolve an active key by its X-CLIENT-KEY (the {@code pgk_} value) for SNAP signature
+     * verification: returns the key metadata plus the client secret needed to recompute the HMAC.
+     * Updates lastUsedAt on success. Empty if unknown or revoked.
+     */
+    public Optional<Resolved> resolve(String clientKey) {
+        if (clientKey == null || clientKey.isBlank()) return Optional.empty();
+        String id = idByHash.get(sha256(clientKey));
+        if (id == null) return Optional.empty();
+        ApiKey k = byId.get(id);
+        if (k == null || !"active".equals(k.status())) return Optional.empty();
+        String secret = secretById.get(id);
+        if (secret == null) return Optional.empty();
+        ApiKey used = k.withLastUsed(Instant.now());
+        byId.put(id, used);
+        return Optional.of(new Resolved(used, secret));
+    }
+
     private String token(int n) {
         byte[] b = new byte[n];
         rnd.nextBytes(b);
@@ -90,6 +123,9 @@ public class ApiKeyService {
         }
     }
 
-    /** Returned ONCE at creation. The plaintext key+secret are never persisted. */
+    /** Returned ONCE at creation. The plaintext key+secret are shown to the integrator once. */
     public record IssuedKey(ApiKey key, String apiKey, String secret) {}
+
+    /** A resolved active credential: metadata + the secret needed to verify a SNAP signature. */
+    public record Resolved(ApiKey key, String secret) {}
 }

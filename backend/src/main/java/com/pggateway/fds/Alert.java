@@ -15,6 +15,7 @@ import java.util.List;
  */
 public record Alert(
         String alertId,
+        String tenantId,      // owning PJP — copied from the triggering event
         String txnEventId,
         String txnRef,
         String account,
@@ -29,7 +30,7 @@ public record Alert(
         Instant createdAt
 ) {
     public Alert withStatus(AlertStatus newStatus) {
-        return new Alert(alertId, txnEventId, txnRef, account, channel, amountMinor,
+        return new Alert(alertId, tenantId, txnEventId, txnRef, account, channel, amountMinor,
                 score, rule, ruleName, report, reasons, newStatus, createdAt);
     }
 }

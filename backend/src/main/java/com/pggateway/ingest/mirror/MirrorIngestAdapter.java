@@ -32,6 +32,7 @@ public class MirrorIngestAdapter implements IngestAdapter<MirrorPayload> {
 
         return new CanonicalEvent(
                 UUID.randomUUID().toString(),
+                "PJP-DEMO",                     // default tenant; the ingest boundary overrides via withTenant()
                 p.externalId(),                 // idempotency key
                 p.partnerReferenceNo(),         // txnRef
                 Channel.fromTransactionType(p.transactionType()),

@@ -45,7 +45,8 @@ public class MirrorIngestController {
     public ResponseEntity<Map<String, Object>> mirror(
             @RequestBody MirrorPayload payload,
             @RequestAttribute(name = SnapSignatureFilter.ATTR_TENANT, required = false) String tenantId) {
-        CanonicalEvent event = adapter.normalize(payload); // throws IngestException on bad input
+        CanonicalEvent event = adapter.normalize(payload)   // throws IngestException on bad input
+                .withTenant(tenantId == null || tenantId.isBlank() ? "PJP-DEMO" : tenantId);
         AppendResult result = store.append(event);
         if (result.outcome() == AppendOutcome.APPENDED) {
             fds.submit(event);    // async — never blocks the ledger

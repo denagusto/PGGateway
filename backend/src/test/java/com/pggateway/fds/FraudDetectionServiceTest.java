@@ -15,7 +15,7 @@ import static org.junit.jupiter.api.Assertions.*;
 class FraudDetectionServiceTest {
 
     private CanonicalEvent ev(String account, long amountMinor, int i) {
-        return new CanonicalEvent("e" + i, "idem-" + account + "-" + i, "REF-" + i, Channel.TRANSFER,
+        return new CanonicalEvent("e" + i, "PJP-T", "idem-" + account + "-" + i, "REF-" + i, Channel.TRANSFER,
                 amountMinor, "IDR", Instant.now(), account, "merchant", "00", account, null, "ref");
     }
 

@@ -26,9 +26,10 @@ public class InMemoryAlertStore implements AlertStore {
     }
 
     @Override
-    public boolean hasOpen(String account, String rule) {
+    public boolean hasOpen(String tenantId, String account, String rule) {
         for (Alert a : byId.values()) {
-            if (a.status() == AlertStatus.OPEN && a.account().equals(account) && a.rule().equals(rule)) {
+            if (a.status() == AlertStatus.OPEN && a.account().equals(account) && a.rule().equals(rule)
+                    && java.util.Objects.equals(a.tenantId(), tenantId)) {
                 return true;
             }
         }
@@ -36,12 +37,14 @@ public class InMemoryAlertStore implements AlertStore {
     }
 
     @Override
-    public List<Alert> list(AlertStatus statusFilter, int limit) {
+    public List<Alert> list(AlertStatus statusFilter, int limit, String tenantId) {
         List<Alert> out = new ArrayList<>();
         Iterator<String> it = order.descendingIterator(); // newest first
         while (it.hasNext() && out.size() < limit) {
             Alert a = byId.get(it.next());
-            if (a != null && (statusFilter == null || a.status() == statusFilter)) {
+            if (a != null
+                    && (statusFilter == null || a.status() == statusFilter)
+                    && (tenantId == null || tenantId.equals(a.tenantId()))) {
                 out.add(a);
             }
         }

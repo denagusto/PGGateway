@@ -49,9 +49,9 @@ public class FraudDetectionService {
     public void inspect(CanonicalEvent e) {
         Map<String, Object> f = features.extract(e); // stateful — once per event
         for (Rule r : engine.evaluate(f)) {
-            if (!alertStore.hasOpen(e.partitionKey(), r.id())) {
+            if (!alertStore.hasOpen(e.tenantId(), e.partitionKey(), r.id())) {
                 alertStore.create(new Alert(
-                        UUID.randomUUID().toString(),
+                        UUID.randomUUID().toString(), e.tenantId(),
                         e.eventId(), e.txnRef(), e.partitionKey(), e.channel(), e.amountMinor(),
                         r.score(), r.id(), r.name(), r.report(),
                         List.of(r.name(), "Memenuhi formula: " + r.expression()),

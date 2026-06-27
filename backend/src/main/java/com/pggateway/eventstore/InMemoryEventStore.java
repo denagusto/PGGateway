@@ -68,16 +68,24 @@ public class InMemoryEventStore implements EventStore {
     }
 
     @Override
-    public List<CanonicalEvent> recent(int limit) {
+    public List<CanonicalEvent> recent(int limit, String tenantId) {
         List<CanonicalEvent> all = new ArrayList<>(log);
-        int from = Math.max(0, all.size() - limit);
-        List<CanonicalEvent> tail = new ArrayList<>(all.subList(from, all.size()));
-        Collections.reverse(tail); // newest first
-        return List.copyOf(tail);
+        Collections.reverse(all); // newest first
+        List<CanonicalEvent> out = new ArrayList<>();
+        for (CanonicalEvent e : all) {
+            if (tenantId == null || tenantId.equals(e.tenantId())) {
+                out.add(e);
+                if (out.size() >= limit) break;
+            }
+        }
+        return List.copyOf(out);
     }
 
-    /** Total events stored (for tests / debugging). */
-    public int size() {
-        return log.size();
+    @Override
+    public int size(String tenantId) {
+        if (tenantId == null) return log.size();
+        int n = 0;
+        for (CanonicalEvent e : log) if (tenantId.equals(e.tenantId())) n++;
+        return n;
     }
 }

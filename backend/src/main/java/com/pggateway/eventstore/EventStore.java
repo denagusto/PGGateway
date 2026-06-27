@@ -17,9 +17,19 @@ public interface EventStore {
 
     AppendResult append(CanonicalEvent event);
 
-    /** Most recent events, newest first (for the UI / debugging). */
-    List<CanonicalEvent> recent(int limit);
+    /** Most recent events for one tenant (PJP), newest first. {@code tenantId} null = all tenants. */
+    List<CanonicalEvent> recent(int limit, String tenantId);
 
-    /** Total events stored. */
-    int size();
+    /** Total events stored for one tenant. {@code tenantId} null = all tenants. */
+    int size(String tenantId);
+
+    /** Most recent events across all tenants (for the UI / debugging). */
+    default List<CanonicalEvent> recent(int limit) {
+        return recent(limit, null);
+    }
+
+    /** Total events stored across all tenants. */
+    default int size() {
+        return size(null);
+    }
 }

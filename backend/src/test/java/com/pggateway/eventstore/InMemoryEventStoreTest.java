@@ -12,7 +12,7 @@ class InMemoryEventStoreTest {
 
     private CanonicalEvent ev(String idem, String partition, Long upstreamSeq) {
         return new CanonicalEvent(
-                "evt-" + idem, idem, "REF-" + idem, Channel.QRIS, 1000L, "IDR",
+                "evt-" + idem, "PJP-T", idem, "REF-" + idem, Channel.QRIS, 1000L, "IDR",
                 Instant.now(), partition, "dest", "00", partition, upstreamSeq, "mirror:" + idem);
     }
 

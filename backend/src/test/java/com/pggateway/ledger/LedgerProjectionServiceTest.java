@@ -12,7 +12,7 @@ import static org.junit.jupiter.api.Assertions.*;
 class LedgerProjectionServiceTest {
 
     private CanonicalEvent ev(String src, String dst, long amountMinor, int i) {
-        return new CanonicalEvent("e" + i, "idem" + i, "REF" + i, Channel.TRANSFER,
+        return new CanonicalEvent("e" + i, "PJP-T", "idem" + i, "REF" + i, Channel.TRANSFER,
                 amountMinor, "IDR", Instant.now(), src, dst, "00", src, null, "ref");
     }
 

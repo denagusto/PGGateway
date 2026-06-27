@@ -20,7 +20,9 @@ public class TransactionsController {
     }
 
     @GetMapping("/transactions")
-    public List<CanonicalEvent> recent(@RequestParam(defaultValue = "50") int limit) {
-        return store.recent(limit);
+    public List<CanonicalEvent> recent(@RequestParam(defaultValue = "50") int limit,
+                                       @RequestParam(required = false) String tenant) {
+        String scope = (tenant == null || tenant.isBlank() || "all".equalsIgnoreCase(tenant)) ? null : tenant;
+        return store.recent(limit, scope);
     }
 }

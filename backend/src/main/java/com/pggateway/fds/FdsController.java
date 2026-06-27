@@ -25,12 +25,18 @@ public class FdsController {
         this.audit = audit;
     }
 
-    /** ?status=OPEN|CONFIRMED_FRAUD|FALSE_POSITIVE (default OPEN), ?limit=N. */
+    /** ?status=OPEN|CONFIRMED_FRAUD|FALSE_POSITIVE (default OPEN), ?limit=N, ?tenant=PJP (blank = all). */
     @GetMapping
     public List<Alert> list(@RequestParam(defaultValue = "OPEN") String status,
-                            @RequestParam(defaultValue = "50") int limit) {
+                            @RequestParam(defaultValue = "50") int limit,
+                            @RequestParam(required = false) String tenant) {
         AlertStatus filter = "ALL".equalsIgnoreCase(status) ? null : AlertStatus.valueOf(status.toUpperCase());
-        return store.list(filter, limit);
+        return store.list(filter, limit, scope(tenant));
+    }
+
+    /** Normalize the tenant query param: blank or "all" means platform-wide (no filter). */
+    static String scope(String tenant) {
+        return (tenant == null || tenant.isBlank() || "all".equalsIgnoreCase(tenant)) ? null : tenant;
     }
 
     @GetMapping("/{id}")

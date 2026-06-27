@@ -15,7 +15,7 @@ import static org.junit.jupiter.api.Assertions.*;
 class ReconciliationServiceTest {
 
     private CanonicalEvent ev(String ref, long amountMinor) {
-        return new CanonicalEvent("e-" + ref, "idem-" + ref, ref, Channel.TRANSFER, amountMinor,
+        return new CanonicalEvent("e-" + ref, "PJP-T", "idem-" + ref, ref, Channel.TRANSFER, amountMinor,
                 "IDR", Instant.now(), "acc", "merchant", "00", "acc-" + ref, null, "rawref");
     }
 

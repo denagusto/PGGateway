@@ -16,6 +16,7 @@ import java.time.Instant;
  */
 public record CanonicalEvent(
         String eventId,
+        String tenantId,      // owning PJP — resolved from the verified SNAP signature at ingest
         String idempotencyKey,
         String txnRef,
         Channel channel,
@@ -34,5 +35,11 @@ public record CanonicalEvent(
             throw new IllegalArgumentException("idempotencyKey is required");
         if (partitionKey == null || partitionKey.isBlank())
             throw new IllegalArgumentException("partitionKey is required");
+    }
+
+    /** Stamp the owning tenant (PJP), known only at the ingest boundary after auth. */
+    public CanonicalEvent withTenant(String t) {
+        return new CanonicalEvent(eventId, t, idempotencyKey, txnRef, channel, amountMinor, currency,
+                occurredAt, sourceParty, destParty, status, partitionKey, upstreamSeq, rawPayloadRef);
     }
 }

@@ -3,6 +3,7 @@ package com.pggateway.ledger;
 import com.pggateway.ingest.CanonicalEvent;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
@@ -25,9 +26,11 @@ import java.util.concurrent.atomic.AtomicLong;
 @Service
 public class LedgerProjectionService {
 
-    private final Map<String, Long> balanceMinor = new ConcurrentHashMap<>();
-    private final Map<String, Integer> txnCount = new ConcurrentHashMap<>();
-    private final AtomicLong totalVolumeMinor = new AtomicLong();
+    // Partitioned per tenant (PJP): tenant -> account -> balance/count. Same account name under two
+    // tenants is two distinct balances — that's the data isolation boundary.
+    private final Map<String, Map<String, Long>> balanceMinor = new ConcurrentHashMap<>();
+    private final Map<String, Map<String, Integer>> txnCount = new ConcurrentHashMap<>();
+    private final Map<String, AtomicLong> volumeByTenant = new ConcurrentHashMap<>();
     private final AtomicLong processed = new AtomicLong();
 
     private final ExecutorService worker = Executors.newSingleThreadExecutor(r -> {
@@ -36,6 +39,10 @@ public class LedgerProjectionService {
         return t;
     });
 
+    private static String tenantOf(CanonicalEvent e) {
+        return (e.tenantId() == null || e.tenantId().isBlank()) ? "PJP-DEMO" : e.tenantId();
+    }
+
     /** Async — used by the ingest path. */
     public void submit(CanonicalEvent e) {
         worker.execute(() -> apply(e));
@@ -43,33 +50,68 @@ public class LedgerProjectionService {
 
     /** Synchronous projection step (also used by the seeder and tests). */
     public void apply(CanonicalEvent e) {
+        String t = tenantOf(e);
+        Map<String, Long> bal = balanceMinor.computeIfAbsent(t, k -> new ConcurrentHashMap<>());
+        Map<String, Integer> cnt = txnCount.computeIfAbsent(t, k -> new ConcurrentHashMap<>());
         // structural double-entry: the two legs sum to zero
-        balanceMinor.merge(e.sourceParty(), -e.amountMinor(), Long::sum);
-        txnCount.merge(e.sourceParty(), 1, Integer::sum);
+        bal.merge(e.sourceParty(), -e.amountMinor(), Long::sum);
+        cnt.merge(e.sourceParty(), 1, Integer::sum);
         if (e.destParty() != null && !e.destParty().isBlank()) {
-            balanceMinor.merge(e.destParty(), e.amountMinor(), Long::sum);
-            txnCount.merge(e.destParty(), 1, Integer::sum);
+            bal.merge(e.destParty(), e.amountMinor(), Long::sum);
+            cnt.merge(e.destParty(), 1, Integer::sum);
         }
-        totalVolumeMinor.addAndGet(e.amountMinor());
+        volumeByTenant.computeIfAbsent(t, k -> new AtomicLong()).addAndGet(e.amountMinor());
         processed.incrementAndGet();
     }
 
-    /** Account balances, most active first. */
+    /** Account balances across all tenants, most active first. */
     public List<AccountBalance> accounts(int limit) {
-        return balanceMinor.entrySet().stream()
-                .map(en -> new AccountBalance(en.getKey(), en.getValue(),
-                        txnCount.getOrDefault(en.getKey(), 0)))
-                .sorted(Comparator.comparingInt(AccountBalance::txnCount).reversed())
-                .limit(limit)
-                .toList();
+        return accounts(limit, null);
+    }
+
+    /** Account balances, most active first. {@code tenantId} null = all tenants (platform view). */
+    public List<AccountBalance> accounts(int limit, String tenantId) {
+        List<AccountBalance> out = new ArrayList<>();
+        for (Map.Entry<String, Map<String, Long>> te : balanceMinor.entrySet()) {
+            if (tenantId != null && !tenantId.equals(te.getKey())) continue;
+            Map<String, Integer> cnt = txnCount.getOrDefault(te.getKey(), Map.of());
+            for (Map.Entry<String, Long> ae : te.getValue().entrySet()) {
+                out.add(new AccountBalance(te.getKey(), ae.getKey(), ae.getValue(),
+                        cnt.getOrDefault(ae.getKey(), 0)));
+            }
+        }
+        out.sort(Comparator.comparingInt(AccountBalance::txnCount).reversed());
+        return out.size() > limit ? List.copyOf(out.subList(0, limit)) : List.copyOf(out);
     }
 
     public long totalVolumeMinor() {
-        return totalVolumeMinor.get();
+        return totalVolumeMinor(null);
+    }
+
+    /** Total volume. {@code tenantId} null = all tenants. */
+    public long totalVolumeMinor(String tenantId) {
+        if (tenantId != null) {
+            AtomicLong v = volumeByTenant.get(tenantId);
+            return v == null ? 0 : v.get();
+        }
+        long s = 0;
+        for (AtomicLong v : volumeByTenant.values()) s += v.get();
+        return s;
     }
 
     public int distinctAccounts() {
-        return balanceMinor.size();
+        return distinctAccounts(null);
+    }
+
+    /** Distinct (tenant, account) pairs. {@code tenantId} null = all tenants. */
+    public int distinctAccounts(String tenantId) {
+        if (tenantId != null) {
+            Map<String, Long> m = balanceMinor.get(tenantId);
+            return m == null ? 0 : m.size();
+        }
+        int s = 0;
+        for (Map<String, Long> m : balanceMinor.values()) s += m.size();
+        return s;
     }
 
     public long processedCount() {

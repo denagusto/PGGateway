@@ -30,19 +30,25 @@ public class LedgerController {
         this.rules = rules;
     }
 
-    /** Account balances (most active first). */
+    /** Account balances (most active first). ?tenant=PJP (blank = all tenants). */
     @GetMapping("/accounts")
-    public List<AccountBalance> accounts(@RequestParam(defaultValue = "50") int limit) {
-        return ledger.accounts(limit);
+    public List<AccountBalance> accounts(@RequestParam(defaultValue = "50") int limit,
+                                         @RequestParam(required = false) String tenant) {
+        return ledger.accounts(limit, scope(tenant));
     }
 
-    /** Real dashboard KPIs. */
+    /** Real dashboard KPIs, scoped to a tenant when ?tenant=PJP is given (blank = all tenants). */
     @GetMapping("/stats")
-    public Stats stats() {
-        int openAlerts = alerts.list(AlertStatus.OPEN, 10_000).size();
+    public Stats stats(@RequestParam(required = false) String tenant) {
+        String t = scope(tenant);
+        int openAlerts = alerts.list(AlertStatus.OPEN, 10_000, t).size();
         int rulesActive = (int) rules.all().stream().filter(Rule::enabled).count();
-        return new Stats(store.size(), ledger.totalVolumeMinor(), openAlerts,
-                ledger.distinctAccounts(), rulesActive);
+        return new Stats(store.size(t), ledger.totalVolumeMinor(t), openAlerts,
+                ledger.distinctAccounts(t), rulesActive);
+    }
+
+    private static String scope(String tenant) {
+        return (tenant == null || tenant.isBlank() || "all".equalsIgnoreCase(tenant)) ? null : tenant;
     }
 
     public record Stats(

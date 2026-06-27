@@ -50,24 +50,27 @@ public class SyntheticSeeder implements ApplicationRunner {
 
     @Override
     public void run(ApplicationArguments args) {
+        // Two demo PJPs so the data-isolation boundary is visible: PJP-DEMO carries the fraud
+        // scenarios + most traffic; PJP-BETA is a separate, clean tenant (no alerts).
         // normal small traffic — below every threshold, below the velocity count
         String[][] normal = {{"ACC-9", "4"}, {"ACC-21", "3"}, {"ACC-37", "4"},
                 {"ACC-55", "4"}, {"ACC-63", "4"}, {"ACC-71", "4"}};
         for (String[] acc : normal) {
+            String tenant = (acc[0].equals("ACC-63") || acc[0].equals("ACC-71")) ? "PJP-BETA" : "PJP-DEMO";
             int n = Integer.parseInt(acc[1]);
             for (int k = 0; k < n; k++) {
-                seed(acc[0], TYPES[rnd.nextInt(TYPES.length)], (rnd.nextInt(400) + 30L) * 1000L); // Rp 30rb-430rb
+                seed(tenant, acc[0], TYPES[rnd.nextInt(TYPES.length)], (rnd.nextInt(400) + 30L) * 1000L); // Rp 30rb-430rb
             }
         }
-        // LTKT — one transaction >= Rp 500 juta
-        seed("ACC-BIG", "TRANSFER_INTRABANK", 600_000_000L);
+        // LTKT — one transaction >= Rp 500 juta (PJP-DEMO)
+        seed("PJP-DEMO", "ACC-BIG", "TRANSFER_INTRABANK", 600_000_000L);
         // Structuring (LTKM) — several large sub-Rp 500 juta transactions from one account
         for (int k = 0; k < 4; k++) {
-            seed("ACC-STRUCT", "TRANSFER_INTRABANK", 300_000_000L);
+            seed("PJP-DEMO", "ACC-STRUCT", "TRANSFER_INTRABANK", 300_000_000L);
         }
         // Unusual velocity (LTKM) — a burst on a fresh account
         for (int k = 0; k < 7; k++) {
-            seed("ACC-99", "QRIS_MPM", (rnd.nextInt(200) + 50L) * 1000L);
+            seed("PJP-DEMO", "ACC-99", "QRIS_MPM", (rnd.nextInt(200) + 50L) * 1000L);
         }
 
         // Reconciliation demo: introduce a few discrepancies vs the counterparty feed
@@ -76,13 +79,13 @@ public class SyntheticSeeder implements ApplicationRunner {
         recon.addCounterparty("REF-GHOST", 25_000_000_000L); // counterparty only (no ledger) -> satu sisi
     }
 
-    private void seed(String account, String type, long rupiah) {
+    private void seed(String tenant, String account, String type, long rupiah) {
         MirrorPayload p = new MirrorPayload(
                 "SEED-" + seq, "REF-" + seq, type,
                 new MirrorPayload.Amount(rupiah + ".00", "IDR"),
                 account, "ACC-merchant", "00", null);
         seq++;
-        CanonicalEvent e = adapter.normalize(p);
+        CanonicalEvent e = adapter.normalize(p).withTenant(tenant);
         store.append(e); // durable + idempotent on idempotency key
         // Rebuild in-memory projections from the seed scenario on every start (so the demo is
         // populated even when the durable store already has the events from a previous run).

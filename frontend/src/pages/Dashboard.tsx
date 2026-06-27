@@ -14,6 +14,7 @@ import { useScreenState } from '../lib/useScreenState'
 import { formatRupiah, formatInt, formatRupiahCompact } from '../lib/format'
 import { scoreMeta } from '../lib/score'
 import { fetchTransactions, postRandomMirror, fetchAlertSummaries, fetchStats } from '../lib/api'
+import { useTenant } from '../lib/tenant'
 import { dashboardKpis } from '../data/mock'
 import type { FraudAlertSummary, Kpi, Stats, Transaction } from '../data/types'
 
@@ -34,16 +35,17 @@ function statsToKpis(s: Stats): Kpi[] {
 
 export default function Dashboard() {
   const { state, setState } = useScreenState()
+  const { tenant } = useTenant()
   const navigate = useNavigate()
   const qc = useQueryClient()
 
   // Real KPIs from /api/stats; honor the demo toggle for loading/error.
   const kpiQuery = useQuery<Kpi[], Error>({
-    queryKey: ['stats', state],
+    queryKey: ['stats', state, tenant],
     queryFn: async () => {
       if (state === 'loading') { await new Promise((r) => setTimeout(r, 100000)); return [] }
       if (state === 'error') throw new Error('Simulated API 5xx')
-      return statsToKpis(await fetchStats())
+      return statsToKpis(await fetchStats(tenant))
     },
     staleTime: 0,
     gcTime: 0,
@@ -51,14 +53,14 @@ export default function Dashboard() {
 
   // Transactions + fraud alerts are REAL (backend). ?state= still forces loading/error/empty.
   const txnQuery = useQuery<Transaction[], Error>({
-    queryKey: ['transactions', state],
-    queryFn: () => withState(state, () => fetchTransactions(25)),
+    queryKey: ['transactions', state, tenant],
+    queryFn: () => withState(state, () => fetchTransactions(25, tenant)),
     staleTime: 0,
     gcTime: 0,
   })
   const alertsQuery = useQuery<FraudAlertSummary[], Error>({
-    queryKey: ['alerts', state],
-    queryFn: () => withState(state, () => fetchAlertSummaries(20)),
+    queryKey: ['alerts', state, tenant],
+    queryFn: () => withState(state, () => fetchAlertSummaries(20, tenant)),
     staleTime: 0,
     gcTime: 0,
   })

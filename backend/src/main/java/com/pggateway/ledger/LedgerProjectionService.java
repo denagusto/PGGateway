@@ -99,6 +99,11 @@ public class LedgerProjectionService {
         return s;
     }
 
+    /** Tenants (PJPs) that have ledger activity, sorted — drives the tenant scope selector. */
+    public List<String> tenants() {
+        return balanceMinor.keySet().stream().sorted().toList();
+    }
+
     public int distinctAccounts() {
         return distinctAccounts(null);
     }

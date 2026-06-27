@@ -13,6 +13,7 @@ import { cn } from '../lib/cn'
 import { formatRupiah } from '../lib/format'
 import { scoreMeta, bandMeta } from '../lib/score'
 import { fetchAlertList } from '../lib/api'
+import { useTenant } from '../lib/tenant'
 import type { AlertRow } from '../data/types'
 
 const FILTERS: { key: string; label: string }[] = [
@@ -30,10 +31,11 @@ function statusBadge(status: string) {
 
 export default function FdsQueue() {
   const navigate = useNavigate()
+  const { tenant } = useTenant()
   const [status, setStatus] = useState('OPEN')
   const query = useQuery<AlertRow[], Error>({
-    queryKey: ['alert-queue', status],
-    queryFn: () => fetchAlertList(status, 100),
+    queryKey: ['alert-queue', status, tenant],
+    queryFn: () => fetchAlertList(status, 100, tenant),
   })
 
   return (

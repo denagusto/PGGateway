@@ -8,11 +8,13 @@ import { TxnStatusBadge } from '../components/StatusBadge'
 import { Table, TBody, THead, TH, TR, TD } from '../components/ui/Table'
 import { formatRupiah, formatInt } from '../lib/format'
 import { fetchAccounts, fetchTransactions } from '../lib/api'
+import { useTenant } from '../lib/tenant'
 import type { AccountBalance, Transaction } from '../data/types'
 
 export default function Ledger() {
-  const accounts = useQuery<AccountBalance[], Error>({ queryKey: ['accounts'], queryFn: () => fetchAccounts(50) })
-  const txns = useQuery<Transaction[], Error>({ queryKey: ['ledger-txns'], queryFn: () => fetchTransactions(20) })
+  const { tenant } = useTenant()
+  const accounts = useQuery<AccountBalance[], Error>({ queryKey: ['accounts', tenant], queryFn: () => fetchAccounts(50, tenant) })
+  const txns = useQuery<Transaction[], Error>({ queryKey: ['ledger-txns', tenant], queryFn: () => fetchTransactions(20, tenant) })
 
   return (
     <>

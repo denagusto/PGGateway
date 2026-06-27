@@ -30,6 +30,12 @@ public class LedgerController {
         this.rules = rules;
     }
 
+    /** Tenants (PJPs) with activity — for the dashboard tenant scope selector. */
+    @GetMapping("/tenants")
+    public List<String> tenants() {
+        return ledger.tenants();
+    }
+
     /** Account balances (most active first). ?tenant=PJP (blank = all tenants). */
     @GetMapping("/accounts")
     public List<AccountBalance> accounts(@RequestParam(defaultValue = "50") int limit,

@@ -60,8 +60,19 @@ function mapTxn(e: CanonicalEvent): Transaction {
   }
 }
 
-export async function fetchTransactions(limit = 25): Promise<Transaction[]> {
-  const res = await fetch(`${API_BASE}/api/transactions?limit=${limit}`)
+/** ?tenant=PJP when a specific tenant is selected; '' for the platform-wide ('all') view. */
+function tenantParam(tenant?: string): string {
+  return tenant && tenant !== 'all' ? `&tenant=${encodeURIComponent(tenant)}` : ''
+}
+
+export async function fetchTenants(): Promise<string[]> {
+  const res = await fetch(`${API_BASE}/api/tenants`)
+  if (!res.ok) throw new Error(`API ${res.status}`)
+  return (await res.json()) as string[]
+}
+
+export async function fetchTransactions(limit = 25, tenant?: string): Promise<Transaction[]> {
+  const res = await fetch(`${API_BASE}/api/transactions?limit=${limit}${tenantParam(tenant)}`)
   if (!res.ok) throw new Error(`API ${res.status}`)
   const data = (await res.json()) as CanonicalEvent[]
   return data.map(mapTxn)
@@ -167,8 +178,8 @@ function toDetail(a: AlertDto): AlertDetailT {
   }
 }
 
-export async function fetchAlertSummaries(limit = 20): Promise<FraudAlertSummary[]> {
-  const res = await fetch(`${API_BASE}/api/alerts?status=OPEN&limit=${limit}`)
+export async function fetchAlertSummaries(limit = 20, tenant?: string): Promise<FraudAlertSummary[]> {
+  const res = await fetch(`${API_BASE}/api/alerts?status=OPEN&limit=${limit}${tenantParam(tenant)}`)
   if (!res.ok) throw new Error(`API ${res.status}`)
   const data = (await res.json()) as AlertDto[]
   return data.map(toSummary)
@@ -190,8 +201,10 @@ function toRow(a: AlertDto): AlertRow {
 }
 
 /** status: OPEN | CONFIRMED_FRAUD | FALSE_POSITIVE | ALL */
-export async function fetchAlertList(status = 'OPEN', limit = 100): Promise<AlertRow[]> {
-  const res = await fetch(`${API_BASE}/api/alerts?status=${encodeURIComponent(status)}&limit=${limit}`)
+export async function fetchAlertList(status = 'OPEN', limit = 100, tenant?: string): Promise<AlertRow[]> {
+  const res = await fetch(
+    `${API_BASE}/api/alerts?status=${encodeURIComponent(status)}&limit=${limit}${tenantParam(tenant)}`,
+  )
   if (!res.ok) throw new Error(`API ${res.status}`)
   return ((await res.json()) as AlertDto[]).map(toRow)
 }
@@ -307,14 +320,15 @@ export async function revokeKey(id: string): Promise<void> {
 
 // ---------- Ledger + stats ----------
 
-export async function fetchStats(): Promise<Stats> {
-  const res = await fetch(`${API_BASE}/api/stats`)
+export async function fetchStats(tenant?: string): Promise<Stats> {
+  const q = tenant && tenant !== 'all' ? `?tenant=${encodeURIComponent(tenant)}` : ''
+  const res = await fetch(`${API_BASE}/api/stats${q}`)
   if (!res.ok) throw new Error(`API ${res.status}`)
   return (await res.json()) as Stats
 }
 
-export async function fetchAccounts(limit = 50): Promise<AccountBalance[]> {
-  const res = await fetch(`${API_BASE}/api/accounts?limit=${limit}`)
+export async function fetchAccounts(limit = 50, tenant?: string): Promise<AccountBalance[]> {
+  const res = await fetch(`${API_BASE}/api/accounts?limit=${limit}${tenantParam(tenant)}`)
   if (!res.ok) throw new Error(`API ${res.status}`)
   return (await res.json()) as AccountBalance[]
 }

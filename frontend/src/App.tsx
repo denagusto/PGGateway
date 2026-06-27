@@ -1,5 +1,6 @@
 import { Routes, Route, Navigate } from 'react-router-dom'
 import { AppShell } from './components/AppShell'
+import { TenantProvider } from './lib/tenant'
 import Dashboard from './pages/Dashboard'
 import AlertDetail from './pages/AlertDetail'
 import Reconciliation from './pages/Reconciliation'
@@ -11,18 +12,20 @@ import Audit from './pages/Audit'
 
 export default function App() {
   return (
-    <AppShell>
-      <Routes>
-        <Route path="/" element={<Dashboard />} />
-        <Route path="/transaksi" element={<Ledger />} />
-        <Route path="/fds" element={<FdsQueue />} />
-        <Route path="/fds/rules" element={<Rules />} />
-        <Route path="/fds/:id" element={<AlertDetail />} />
-        <Route path="/rekonsiliasi" element={<Reconciliation />} />
-        <Route path="/developer" element={<Developer />} />
-        <Route path="/audit" element={<Audit />} />
-        <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
-    </AppShell>
+    <TenantProvider>
+      <AppShell>
+        <Routes>
+          <Route path="/" element={<Dashboard />} />
+          <Route path="/transaksi" element={<Ledger />} />
+          <Route path="/fds" element={<FdsQueue />} />
+          <Route path="/fds/rules" element={<Rules />} />
+          <Route path="/fds/:id" element={<AlertDetail />} />
+          <Route path="/rekonsiliasi" element={<Reconciliation />} />
+          <Route path="/developer" element={<Developer />} />
+          <Route path="/audit" element={<Audit />} />
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </AppShell>
+    </TenantProvider>
   )
 }

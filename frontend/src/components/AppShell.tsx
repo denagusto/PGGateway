@@ -1,7 +1,10 @@
 import type { ReactNode } from 'react'
 import { NavLink } from 'react-router-dom'
 import { ChevronDown, ShieldCheck } from 'lucide-react'
+import { useQuery } from '@tanstack/react-query'
 import { cn } from '../lib/cn'
+import { useTenant } from '../lib/tenant'
+import { fetchTenants } from '../lib/api'
 
 /**
  * App shell. DESIGN.md §6/§9:
@@ -48,22 +51,40 @@ function TopBar() {
         </nav>
 
         <div className="ml-auto">
-          <button
-            type="button"
-            className="inline-flex items-center gap-2 rounded-md border border-white/15 bg-white/5 px-3 py-1.5 text-body font-semibold text-[#e8eef6] hover:bg-white/10"
-            aria-label="Tenant aktif: PT Dompet Cepat (PJP)"
-          >
-            <span
-              aria-hidden="true"
-              className="h-2 w-2 rounded-full bg-success"
-            />
-            <span className="text-[#c7d2e3]">Tenant:</span>
-            <span>PT Dompet Cepat (PJP)</span>
-            <ChevronDown aria-hidden="true" className="h-4 w-4 opacity-80" />
-          </button>
+          <TenantSelect />
         </div>
       </div>
     </header>
+  )
+}
+
+/** Tenant scope selector — re-scopes the whole dashboard to one PJP (or all). */
+function TenantSelect() {
+  const { tenant, setTenant } = useTenant()
+  const { data } = useQuery<string[], Error>({ queryKey: ['tenants'], queryFn: fetchTenants })
+  const tenants = data ?? []
+  return (
+    <div className="relative">
+      <span
+        aria-hidden="true"
+        className="pointer-events-none absolute left-3 top-1/2 h-2 w-2 -translate-y-1/2 rounded-full bg-success"
+      />
+      <select
+        value={tenant}
+        onChange={(e) => setTenant(e.target.value)}
+        aria-label="Lingkup tenant (PJP)"
+        className="appearance-none rounded-md border border-white/15 bg-white/5 py-1.5 pl-7 pr-9 text-body font-semibold text-[#e8eef6] hover:bg-white/10 focus:outline-none"
+      >
+        <option value="all" className="text-ink">Semua PJP</option>
+        {tenants.map((t) => (
+          <option key={t} value={t} className="text-ink">{t}</option>
+        ))}
+      </select>
+      <ChevronDown
+        aria-hidden="true"
+        className="pointer-events-none absolute right-2.5 top-1/2 h-4 w-4 -translate-y-1/2 opacity-80"
+      />
+    </div>
   )
 }
 

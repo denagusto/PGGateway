@@ -1,7 +1,9 @@
 package com.pggateway.ingest.mirror;
 
+import com.pggateway.eventstore.AppendOutcome;
 import com.pggateway.eventstore.AppendResult;
 import com.pggateway.eventstore.EventStore;
+import com.pggateway.fds.FraudDetectionService;
 import com.pggateway.ingest.CanonicalEvent;
 import com.pggateway.ingest.IngestException;
 import org.springframework.http.ResponseEntity;
@@ -20,16 +22,21 @@ public class MirrorIngestController {
 
     private final MirrorIngestAdapter adapter;
     private final EventStore store;
+    private final FraudDetectionService fds;
 
-    public MirrorIngestController(MirrorIngestAdapter adapter, EventStore store) {
+    public MirrorIngestController(MirrorIngestAdapter adapter, EventStore store, FraudDetectionService fds) {
         this.adapter = adapter;
         this.store = store;
+        this.fds = fds;
     }
 
     @PostMapping("/mirror")
     public ResponseEntity<Map<String, Object>> mirror(@RequestBody MirrorPayload payload) {
         CanonicalEvent event = adapter.normalize(payload); // throws IngestException on bad input
         AppendResult result = store.append(event);
+        if (result.outcome() == AppendOutcome.APPENDED) {
+            fds.submit(event); // async — never blocks the ledger
+        }
         return ResponseEntity.ok(Map.of(
                 "outcome", result.outcome(),
                 "eventId", event.eventId(),

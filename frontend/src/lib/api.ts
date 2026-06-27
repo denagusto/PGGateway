@@ -2,7 +2,13 @@
  * Backend API client. Talks to the Spring Boot backend (default http://localhost:8081).
  * Maps the backend CanonicalEvent shape into the frontend Transaction shape.
  */
-import type { Transaction, TxnStatus, Channel } from '../data/types'
+import type {
+  Transaction,
+  TxnStatus,
+  Channel,
+  FraudAlertSummary,
+  AlertDetail as AlertDetailT,
+} from '../data/types'
 
 const API_BASE = (import.meta.env.VITE_API_BASE as string) || 'http://localhost:8081'
 
@@ -77,4 +83,95 @@ export async function postRandomMirror(): Promise<void> {
     body: JSON.stringify(payload),
   })
   if (!res.ok) throw new Error(`Ingest ${res.status}`)
+}
+
+// ---------- Fraud alerts (FDS) ----------
+
+/** Mirror of backend com.pggateway.fds.Alert */
+interface AlertDto {
+  alertId: string
+  txnEventId: string
+  txnRef: string
+  account: string
+  channel: string
+  amountMinor: number
+  score: number
+  rule: string
+  reasons: string[]
+  status: 'OPEN' | 'CONFIRMED_FRAUD' | 'FALSE_POSITIVE'
+  createdAt: string
+}
+
+const RULE_TITLE: Record<string, string> = {
+  velocity_new_account: 'Velocity tinggi — akun baru',
+  amount_anomaly: 'Nominal transaksi tidak wajar',
+}
+function ruleTitle(rule: string): string {
+  return RULE_TITLE[rule] ?? rule
+}
+
+function channelLabel(c: string): string {
+  if (c === 'QRIS') return 'QRIS'
+  if (c === 'VIRTUAL_ACCOUNT') return 'Virtual Account'
+  if (c === 'TRANSFER') return 'Transfer'
+  if (c === 'DIRECT_DEBIT') return 'Direct Debit'
+  return c
+}
+function minutesAgo(iso: string): number {
+  return Math.max(0, Math.round((Date.now() - new Date(iso).getTime()) / 60000))
+}
+
+function toSummary(a: AlertDto): FraudAlertSummary {
+  return { id: a.alertId, judul: ruleTitle(a.rule), score: a.score, menitLalu: minutesAgo(a.createdAt) }
+}
+
+function toDetail(a: AlertDto): AlertDetailT {
+  const prioritas = a.score >= 80 ? 'tinggi' : a.score >= 60 ? 'sedang' : 'rendah'
+  const jumlah = Math.round(a.amountMinor / 100)
+  return {
+    id: a.alertId,
+    judul: ruleTitle(a.rule),
+    channel: channelLabel(a.channel),
+    jumlah,
+    waktuRingkas: new Date(a.createdAt).toLocaleTimeString('id-ID', { hour12: false }),
+    status: a.status === 'OPEN' ? 'terbuka' : 'ditutup',
+    prioritas,
+    score: a.score,
+    rule: a.rule,
+    konteks: {
+      jumlah,
+      channel: channelLabel(a.channel),
+      merchant: '—',
+      akunSumber: a.account,
+      waktu: new Date(a.createdAt).toLocaleString('id-ID', { hour12: false }),
+      txnRef: a.txnRef,
+    },
+    alasan: a.reasons,
+  }
+}
+
+export async function fetchAlertSummaries(limit = 20): Promise<FraudAlertSummary[]> {
+  const res = await fetch(`${API_BASE}/api/alerts?status=OPEN&limit=${limit}`)
+  if (!res.ok) throw new Error(`API ${res.status}`)
+  const data = (await res.json()) as AlertDto[]
+  return data.map(toSummary)
+}
+
+export async function fetchAlertDetail(id: string): Promise<AlertDetailT | null> {
+  const res = await fetch(`${API_BASE}/api/alerts/${encodeURIComponent(id)}`)
+  if (res.status === 404) return null
+  if (!res.ok) throw new Error(`API ${res.status}`)
+  return toDetail((await res.json()) as AlertDto)
+}
+
+export async function postAlertVerdict(
+  id: string,
+  verdict: 'confirm_fraud' | 'false_positive',
+): Promise<void> {
+  const res = await fetch(`${API_BASE}/api/alerts/${encodeURIComponent(id)}/verdict`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ verdict }),
+  })
+  if (!res.ok) throw new Error(`Verdict ${res.status}`)
 }

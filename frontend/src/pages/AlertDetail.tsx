@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useParams } from 'react-router-dom'
 import { ShieldCheck } from 'lucide-react'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { PageHeader } from '../components/PageHeader'
 import { StateToggle } from '../components/StateToggle'
 import { Card, CardBody, CardHeader } from '../components/ui/Card'
@@ -10,25 +11,48 @@ import { Skeleton } from '../components/ui/Skeleton'
 import { RiskGauge } from '../components/ui/RiskGauge'
 import { EmptyState, ErrorState } from '../components/StateViews'
 import { useScreenState } from '../lib/useScreenState'
-import { useMockQuery } from '../lib/useMockQuery'
 import { formatRupiah } from '../lib/format'
 import { scoreMeta } from '../lib/score'
-import { getAlertDetail } from '../data/mock'
+import { fetchAlertDetail, postAlertVerdict } from '../lib/api'
 import type { AlertDetail as AlertDetailT } from '../data/types'
 
 export default function AlertDetail() {
-  const { id = 'A-20431' } = useParams()
+  const { id = '' } = useParams()
   const { state, setState } = useScreenState()
   const [note, setNote] = useState('')
-  const [resolved, setResolved] = useState<null | 'fraud' | 'fp'>(null)
+  const qc = useQueryClient()
 
-  const detail = getAlertDetail(id)
-  const query = useMockQuery<AlertDetailT | null>(
-    ['alert', id],
-    detail ?? null,
-    null,
-    state,
-  )
+  const query = useQuery<AlertDetailT | null, Error>({
+    queryKey: ['alert', id, state],
+    queryFn: async () => {
+      if (state === 'loading') {
+        await new Promise((r) => setTimeout(r, 100000))
+        return null
+      }
+      if (state === 'error') throw new Error('Simulated API 5xx')
+      if (state === 'empty') return null
+      return fetchAlertDetail(id)
+    },
+    staleTime: 0,
+    gcTime: 0,
+  })
+
+  const verdict = useMutation({
+    mutationFn: (v: 'confirm_fraud' | 'false_positive') => postAlertVerdict(id, v),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['alert', id] })
+      qc.invalidateQueries({ queryKey: ['alerts'] })
+    },
+  })
+
+  const resolved: null | 'fraud' | 'fp' =
+    query.data && query.data.status === 'ditutup'
+      ? 'fraud'
+      : verdict.isSuccess
+        ? verdict.variables === 'confirm_fraud'
+          ? 'fraud'
+          : 'fp'
+        : null
 
   return (
     <>
@@ -58,7 +82,8 @@ export default function AlertDetail() {
           note={note}
           setNote={setNote}
           resolved={resolved}
-          onResolve={setResolved}
+          pending={verdict.isPending}
+          onResolve={(r) => verdict.mutate(r === 'fraud' ? 'confirm_fraud' : 'false_positive')}
         />
       )}
     </>
@@ -70,29 +95,30 @@ function ReadyDetail({
   note,
   setNote,
   resolved,
+  pending,
   onResolve,
 }: {
   d: AlertDetailT
   note: string
   setNote: (s: string) => void
   resolved: null | 'fraud' | 'fp'
+  pending: boolean
   onResolve: (r: 'fraud' | 'fp') => void
 }) {
   const meta = scoreMeta(d.score)
   return (
     <>
-      {/* Alert header card */}
       <Card className="mb-6">
         <div className="flex flex-wrap items-start justify-between gap-3 p-4">
           <div>
             <h2 className="text-h2 font-semibold text-ink">
-              Alert #{d.id} — {d.judul}
+              Alert #{d.id.slice(0, 8)} — {d.judul}
             </h2>
             <p className="mt-0.5 text-small text-muted tnum">
               {d.channel} · {formatRupiah(d.jumlah)} · {d.waktuRingkas}
             </p>
           </div>
-          {d.status === 'terbuka' ? (
+          {d.status === 'terbuka' && resolved === null ? (
             <Badge tone="danger">TERBUKA · prioritas {d.prioritas}</Badge>
           ) : (
             <Badge tone="neutral">DITUTUP</Badge>
@@ -101,7 +127,6 @@ function ReadyDetail({
       </Card>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-        {/* Col 1 — Konteks transaksi */}
         <Card>
           <CardHeader title="Konteks transaksi" />
           <CardBody>
@@ -116,7 +141,6 @@ function ReadyDetail({
           </CardBody>
         </Card>
 
-        {/* Col 2 — Kenapa ini ditandai (gauge + reasons) */}
         <Card>
           <CardHeader title="Kenapa ini ditandai" />
           <CardBody>
@@ -141,7 +165,6 @@ function ReadyDetail({
           </CardBody>
         </Card>
 
-        {/* Col 3 — Tindakan */}
         <Card>
           <CardHeader title="Tindakan" />
           <CardBody>
@@ -154,15 +177,15 @@ function ReadyDetail({
               <Button
                 variant="destructive"
                 className="h-10 w-full"
-                disabled={resolved !== null}
+                disabled={resolved !== null || pending}
                 onClick={() => onResolve('fraud')}
               >
-                Konfirmasi Fraud
+                {pending ? 'Menyimpan…' : 'Konfirmasi Fraud'}
               </Button>
               <Button
                 variant="secondary"
                 className="h-10 w-full"
-                disabled={resolved !== null}
+                disabled={resolved !== null || pending}
                 onClick={() => onResolve('fp')}
               >
                 Tandai False-Positive

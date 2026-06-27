@@ -14,47 +14,38 @@ import { useScreenState } from '../lib/useScreenState'
 import { useMockQuery } from '../lib/useMockQuery'
 import { formatRupiah } from '../lib/format'
 import { scoreMeta } from '../lib/score'
-import { fetchTransactions, postRandomMirror } from '../lib/api'
-import { dashboardKpis, fraudAlerts } from '../data/mock'
+import { fetchTransactions, postRandomMirror, fetchAlertSummaries } from '../lib/api'
+import { dashboardKpis } from '../data/mock'
 import type { FraudAlertSummary, Kpi, Transaction } from '../data/types'
-
-interface DashboardMeta {
-  kpis: Kpi[]
-  alerts: FraudAlertSummary[]
-}
 
 export default function Dashboard() {
   const { state, setState } = useScreenState()
   const navigate = useNavigate()
   const qc = useQueryClient()
 
-  // KPIs + alerts are still mock (backend doesn't produce them yet); honor the demo toggle.
-  const metaQuery = useMockQuery<DashboardMeta>(
-    ['dashboard-meta'],
-    { kpis: dashboardKpis, alerts: fraudAlerts },
-    { kpis: dashboardKpis, alerts: [] },
-    state,
-  )
+  // KPIs are still mock (backend doesn't compute them yet); honor the demo toggle.
+  const kpiQuery = useMockQuery<Kpi[]>(['kpis'], dashboardKpis, dashboardKpis, state)
 
-  // Transaction feed is REAL — GET /api/transactions. ?state= still forces loading/error/empty.
+  // Transactions + fraud alerts are REAL (backend). ?state= still forces loading/error/empty.
   const txnQuery = useQuery<Transaction[], Error>({
     queryKey: ['transactions', state],
-    queryFn: async () => {
-      if (state === 'loading') {
-        await new Promise((r) => setTimeout(r, 100000))
-        return []
-      }
-      if (state === 'error') throw new Error('Simulated API 5xx')
-      if (state === 'empty') return []
-      return fetchTransactions(25)
-    },
+    queryFn: () => withState(state, () => fetchTransactions(25)),
+    staleTime: 0,
+    gcTime: 0,
+  })
+  const alertsQuery = useQuery<FraudAlertSummary[], Error>({
+    queryKey: ['alerts', state],
+    queryFn: () => withState(state, () => fetchAlertSummaries(20)),
     staleTime: 0,
     gcTime: 0,
   })
 
   const sendTest = useMutation({
     mutationFn: postRandomMirror,
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['transactions'] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['transactions'] })
+      qc.invalidateQueries({ queryKey: ['alerts'] })
+    },
   })
 
   return (
@@ -65,9 +56,8 @@ export default function Dashboard() {
         right={<StateToggle state={state} onChange={setState} />}
       />
 
-      {/* KPI row — 5 cards, wraps responsively (DESIGN.md §6) */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">
-        {metaQuery.isPending
+        {kpiQuery.isPending
           ? Array.from({ length: 5 }).map((_, i) => (
               <Card key={i} className="p-4">
                 <Skeleton className="h-3 w-24" />
@@ -75,7 +65,7 @@ export default function Dashboard() {
                 <Skeleton className="mt-2 h-3 w-16" />
               </Card>
             ))
-          : (metaQuery.data?.kpis ?? dashboardKpis).map((kpi) => (
+          : (kpiQuery.data ?? dashboardKpis).map((kpi) => (
               <StatCard
                 key={kpi.label}
                 label={kpi.label}
@@ -88,7 +78,6 @@ export default function Dashboard() {
       </div>
 
       <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-3">
-        {/* Live transaction feed — real data from the backend */}
         <Card className="lg:col-span-2">
           <CardHeader
             title="Aliran transaksi langsung"
@@ -107,14 +96,27 @@ export default function Dashboard() {
           <TxnFeed query={txnQuery} />
         </Card>
 
-        {/* Recent fraud alerts (mock) */}
         <Card>
           <CardHeader title="Alert fraud terbaru" />
-          <AlertList query={metaQuery} onOpen={(id) => navigate(`/fds/${id}`)} />
+          <AlertList query={alertsQuery} onOpen={(id) => navigate(`/fds/${id}`)} />
         </Card>
       </div>
     </>
   )
+}
+
+/** Demo-state wrapper: forces loading/error/empty for the ?state= toggle, else runs the real fetch. */
+async function withState<T>(
+  state: string,
+  real: () => Promise<T[]>,
+): Promise<T[]> {
+  if (state === 'loading') {
+    await new Promise((r) => setTimeout(r, 100000))
+    return []
+  }
+  if (state === 'error') throw new Error('Simulated API 5xx')
+  if (state === 'empty') return []
+  return real()
 }
 
 function TxnFeed({ query }: { query: UseQueryResult<Transaction[], Error> }) {
@@ -127,9 +129,7 @@ function TxnFeed({ query }: { query: UseQueryResult<Transaction[], Error> }) {
       </div>
     )
   }
-  if (query.isError) {
-    return <ErrorState onRetry={() => query.refetch()} />
-  }
+  if (query.isError) return <ErrorState onRetry={() => query.refetch()} />
   const txns = query.data ?? []
   if (txns.length === 0) {
     return (
@@ -172,7 +172,7 @@ function AlertList({
   query,
   onOpen,
 }: {
-  query: UseQueryResult<DashboardMeta, Error>
+  query: UseQueryResult<FraudAlertSummary[], Error>
   onOpen: (id: string) => void
 }) {
   if (query.isPending) {
@@ -184,10 +184,8 @@ function AlertList({
       </div>
     )
   }
-  if (query.isError) {
-    return <ErrorState onRetry={() => query.refetch()} />
-  }
-  const alerts = query.data?.alerts ?? []
+  if (query.isError) return <ErrorState onRetry={() => query.refetch()} />
+  const alerts = query.data ?? []
   if (alerts.length === 0) {
     return (
       <EmptyState

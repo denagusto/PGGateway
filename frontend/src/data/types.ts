@@ -77,6 +77,20 @@ export interface IssuedKey {
   secret: string // shown once
 }
 
+// Real dashboard stats + ledger balances (mirror backend)
+export interface Stats {
+  txnCount: number
+  totalVolumeMinor: number
+  openAlerts: number
+  activeAccounts: number
+  rulesActive: number
+}
+export interface AccountBalance {
+  account: string
+  balanceMinor: number
+  txnCount: number
+}
+
 export type MismatchStatus = 'selisih nominal' | 'satu sisi' | 'cocok'
 
 export interface Mismatch {

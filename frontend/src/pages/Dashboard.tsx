@@ -11,20 +11,43 @@ import { EmptyState, ErrorState } from '../components/StateViews'
 import { TxnStatusBadge } from '../components/StatusBadge'
 import { Table, TBody, THead, TH, TR, TD } from '../components/ui/Table'
 import { useScreenState } from '../lib/useScreenState'
-import { useMockQuery } from '../lib/useMockQuery'
-import { formatRupiah } from '../lib/format'
+import { formatRupiah, formatInt, formatRupiahCompact } from '../lib/format'
 import { scoreMeta } from '../lib/score'
-import { fetchTransactions, postRandomMirror, fetchAlertSummaries } from '../lib/api'
+import { fetchTransactions, postRandomMirror, fetchAlertSummaries, fetchStats } from '../lib/api'
 import { dashboardKpis } from '../data/mock'
-import type { FraudAlertSummary, Kpi, Transaction } from '../data/types'
+import type { FraudAlertSummary, Kpi, Stats, Transaction } from '../data/types'
+
+function statsToKpis(s: Stats): Kpi[] {
+  return [
+    { label: 'Transaksi', value: formatInt(s.txnCount), sub: 'ditangkap', subTone: 'muted', valueTone: 'ink' },
+    { label: 'Volume', value: formatRupiahCompact(s.totalVolumeMinor / 100), sub: 'akumulasi', subTone: 'muted', valueTone: 'ink' },
+    {
+      label: 'Alert fraud terbuka', value: String(s.openAlerts),
+      sub: s.openAlerts > 0 ? 'perlu ditinjau' : 'aman',
+      subTone: s.openAlerts > 0 ? 'danger' : 'success',
+      valueTone: s.openAlerts > 0 ? 'danger' : 'ink',
+    },
+    { label: 'Akun aktif', value: formatInt(s.activeAccounts), sub: 'unik', subTone: 'muted', valueTone: 'ink' },
+    { label: 'Rule FDS aktif', value: formatInt(s.rulesActive), sub: 'aturan', subTone: 'muted', valueTone: 'ink' },
+  ]
+}
 
 export default function Dashboard() {
   const { state, setState } = useScreenState()
   const navigate = useNavigate()
   const qc = useQueryClient()
 
-  // KPIs are still mock (backend doesn't compute them yet); honor the demo toggle.
-  const kpiQuery = useMockQuery<Kpi[]>(['kpis'], dashboardKpis, dashboardKpis, state)
+  // Real KPIs from /api/stats; honor the demo toggle for loading/error.
+  const kpiQuery = useQuery<Kpi[], Error>({
+    queryKey: ['stats', state],
+    queryFn: async () => {
+      if (state === 'loading') { await new Promise((r) => setTimeout(r, 100000)); return [] }
+      if (state === 'error') throw new Error('Simulated API 5xx')
+      return statsToKpis(await fetchStats())
+    },
+    staleTime: 0,
+    gcTime: 0,
+  })
 
   // Transactions + fraud alerts are REAL (backend). ?state= still forces loading/error/empty.
   const txnQuery = useQuery<Transaction[], Error>({
@@ -45,6 +68,7 @@ export default function Dashboard() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['transactions'] })
       qc.invalidateQueries({ queryKey: ['alerts'] })
+      qc.invalidateQueries({ queryKey: ['stats'] })
     },
   })
 

@@ -6,6 +6,7 @@ import com.pggateway.eventstore.EventStore;
 import com.pggateway.fds.FraudDetectionService;
 import com.pggateway.ingest.CanonicalEvent;
 import com.pggateway.ingest.IngestException;
+import com.pggateway.ledger.LedgerProjectionService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -23,11 +24,14 @@ public class MirrorIngestController {
     private final MirrorIngestAdapter adapter;
     private final EventStore store;
     private final FraudDetectionService fds;
+    private final LedgerProjectionService ledger;
 
-    public MirrorIngestController(MirrorIngestAdapter adapter, EventStore store, FraudDetectionService fds) {
+    public MirrorIngestController(MirrorIngestAdapter adapter, EventStore store,
+                                  FraudDetectionService fds, LedgerProjectionService ledger) {
         this.adapter = adapter;
         this.store = store;
         this.fds = fds;
+        this.ledger = ledger;
     }
 
     @PostMapping("/mirror")
@@ -35,7 +39,8 @@ public class MirrorIngestController {
         CanonicalEvent event = adapter.normalize(payload); // throws IngestException on bad input
         AppendResult result = store.append(event);
         if (result.outcome() == AppendOutcome.APPENDED) {
-            fds.submit(event); // async — never blocks the ledger
+            fds.submit(event);    // async — never blocks the ledger
+            ledger.submit(event); // async projection
         }
         return ResponseEntity.ok(Map.of(
                 "outcome", result.outcome(),

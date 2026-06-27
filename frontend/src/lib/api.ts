@@ -11,6 +11,8 @@ import type {
   FdsRule,
   ApiKey,
   IssuedKey,
+  Stats,
+  AccountBalance,
 } from '../data/types'
 
 export const API_BASE = (import.meta.env.VITE_API_BASE as string) || 'http://localhost:8081'
@@ -252,4 +254,18 @@ export async function createKey(body: {
 export async function revokeKey(id: string): Promise<void> {
   const res = await fetch(`${API_BASE}/api/dev/keys/${encodeURIComponent(id)}`, { method: 'DELETE' })
   if (!res.ok && res.status !== 204) throw new Error(`Gagal mencabut key (${res.status})`)
+}
+
+// ---------- Ledger + stats ----------
+
+export async function fetchStats(): Promise<Stats> {
+  const res = await fetch(`${API_BASE}/api/stats`)
+  if (!res.ok) throw new Error(`API ${res.status}`)
+  return (await res.json()) as Stats
+}
+
+export async function fetchAccounts(limit = 50): Promise<AccountBalance[]> {
+  const res = await fetch(`${API_BASE}/api/accounts?limit=${limit}`)
+  if (!res.ok) throw new Error(`API ${res.status}`)
+  return (await res.json()) as AccountBalance[]
 }

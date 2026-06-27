@@ -7,6 +7,7 @@ import com.pggateway.fds.FraudDetectionService;
 import com.pggateway.ingest.CanonicalEvent;
 import com.pggateway.ingest.mirror.MirrorIngestAdapter;
 import com.pggateway.ingest.mirror.MirrorPayload;
+import com.pggateway.ledger.LedgerProjectionService;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -33,13 +34,16 @@ public class SyntheticSeeder implements ApplicationRunner {
     private final MirrorIngestAdapter adapter;
     private final EventStore store;
     private final FraudDetectionService fds;
+    private final LedgerProjectionService ledger;
     private final Random rnd = new Random(42);
     private int seq = 0;
 
-    public SyntheticSeeder(MirrorIngestAdapter adapter, EventStore store, FraudDetectionService fds) {
+    public SyntheticSeeder(MirrorIngestAdapter adapter, EventStore store,
+                           FraudDetectionService fds, LedgerProjectionService ledger) {
         this.adapter = adapter;
         this.store = store;
         this.fds = fds;
+        this.ledger = ledger;
     }
 
     @Override
@@ -74,7 +78,8 @@ public class SyntheticSeeder implements ApplicationRunner {
         CanonicalEvent e = adapter.normalize(p);
         AppendResult r = store.append(e);
         if (r.outcome() == AppendOutcome.APPENDED) {
-            fds.inspect(e); // synchronous at seed time so alerts exist right after startup
+            fds.inspect(e);   // synchronous at seed time so alerts exist right after startup
+            ledger.apply(e);  // project balances synchronously too
         }
     }
 }

@@ -1,7 +1,9 @@
 import { Routes, Route, Navigate } from 'react-router-dom'
 import { AppShell } from './components/AppShell'
 import { TenantProvider } from './lib/tenant'
+import { AuthProvider, useAuth } from './lib/auth'
 import { useLiveStream } from './lib/useLiveStream'
+import Login from './pages/Login'
 import Dashboard from './pages/Dashboard'
 import AlertDetail from './pages/AlertDetail'
 import Reconciliation from './pages/Reconciliation'
@@ -13,6 +15,21 @@ import FdsQueue from './pages/FdsQueue'
 import Audit from './pages/Audit'
 
 export default function App() {
+  return (
+    <AuthProvider>
+      <Gate />
+    </AuthProvider>
+  )
+}
+
+function Gate() {
+  const { user, ready } = useAuth()
+  if (!ready) return <div className="grid min-h-screen place-items-center bg-bg text-muted">Memuat…</div>
+  if (!user) return <Login />
+  return <AuthedApp />
+}
+
+function AuthedApp() {
   useLiveStream() // SSE: push updates to every list in real time
   return (
     <TenantProvider>

@@ -1,5 +1,6 @@
 package com.pggateway.ledger;
 
+import com.pggateway.auth.TenantScope;
 import com.pggateway.eventstore.EventStore;
 import com.pggateway.fds.AlertStatus;
 import com.pggateway.fds.AlertStore;
@@ -21,40 +22,38 @@ public class LedgerController {
     private final EventStore store;
     private final AlertStore alerts;
     private final RuleStore rules;
+    private final TenantScope tenantScope;
 
     public LedgerController(LedgerProjectionService ledger, EventStore store,
-                            AlertStore alerts, RuleStore rules) {
+                            AlertStore alerts, RuleStore rules, TenantScope tenantScope) {
         this.ledger = ledger;
         this.store = store;
         this.alerts = alerts;
         this.rules = rules;
+        this.tenantScope = tenantScope;
     }
 
-    /** Tenants (PJPs) with activity — for the dashboard tenant scope selector. */
+    /** Tenants (PJPs) the current user may scope to — drives the dashboard scope selector. */
     @GetMapping("/tenants")
     public List<String> tenants() {
-        return ledger.tenants();
+        return tenantScope.allowedTenants(ledger.tenants());
     }
 
-    /** Account balances (most active first). ?tenant=PJP (blank = all tenants). */
+    /** Account balances (most active first), scoped to the user's tenant. */
     @GetMapping("/accounts")
     public List<AccountBalance> accounts(@RequestParam(defaultValue = "50") int limit,
                                          @RequestParam(required = false) String tenant) {
-        return ledger.accounts(limit, scope(tenant));
+        return ledger.accounts(limit, tenantScope.resolve(tenant));
     }
 
-    /** Real dashboard KPIs, scoped to a tenant when ?tenant=PJP is given (blank = all tenants). */
+    /** Real dashboard KPIs, scoped to the user's tenant. */
     @GetMapping("/stats")
     public Stats stats(@RequestParam(required = false) String tenant) {
-        String t = scope(tenant);
+        String t = tenantScope.resolve(tenant);
         int openAlerts = alerts.list(AlertStatus.OPEN, 10_000, t).size();
         int rulesActive = (int) rules.all().stream().filter(Rule::enabled).count();
         return new Stats(store.size(t), ledger.totalVolumeMinor(t), openAlerts,
                 ledger.distinctAccounts(t), rulesActive);
-    }
-
-    private static String scope(String tenant) {
-        return (tenant == null || tenant.isBlank() || "all".equalsIgnoreCase(tenant)) ? null : tenant;
     }
 
     public record Stats(

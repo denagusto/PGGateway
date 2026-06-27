@@ -19,24 +19,21 @@ public class FdsController {
 
     private final AlertStore store;
     private final AuditService audit;
+    private final com.pggateway.auth.TenantScope tenantScope;
 
-    public FdsController(AlertStore store, AuditService audit) {
+    public FdsController(AlertStore store, AuditService audit, com.pggateway.auth.TenantScope tenantScope) {
         this.store = store;
         this.audit = audit;
+        this.tenantScope = tenantScope;
     }
 
-    /** ?status=OPEN|CONFIRMED_FRAUD|FALSE_POSITIVE (default OPEN), ?limit=N, ?tenant=PJP (blank = all). */
+    /** ?status=OPEN|CONFIRMED_FRAUD|FALSE_POSITIVE (default OPEN), ?limit=N. Tenant comes from the session. */
     @GetMapping
     public List<Alert> list(@RequestParam(defaultValue = "OPEN") String status,
                             @RequestParam(defaultValue = "50") int limit,
                             @RequestParam(required = false) String tenant) {
         AlertStatus filter = "ALL".equalsIgnoreCase(status) ? null : AlertStatus.valueOf(status.toUpperCase());
-        return store.list(filter, limit, scope(tenant));
-    }
-
-    /** Normalize the tenant query param: blank or "all" means platform-wide (no filter). */
-    static String scope(String tenant) {
-        return (tenant == null || tenant.isBlank() || "all".equalsIgnoreCase(tenant)) ? null : tenant;
+        return store.list(filter, limit, tenantScope.resolve(tenant));
     }
 
     @GetMapping("/{id}")

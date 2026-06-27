@@ -13,33 +13,31 @@ import java.util.List;
 public class LedgerGlController {
 
     private final GeneralLedgerService gl;
+    private final com.pggateway.auth.TenantScope tenantScope;
 
-    public LedgerGlController(GeneralLedgerService gl) {
+    public LedgerGlController(GeneralLedgerService gl, com.pggateway.auth.TenantScope tenantScope) {
         this.gl = gl;
+        this.tenantScope = tenantScope;
     }
 
     @GetMapping("/general")
     public List<GeneralLedgerService.LedgerLine> general(@RequestParam(required = false) String tenant) {
-        return gl.generalLedger(scope(tenant));
+        return gl.generalLedger(tenantScope.resolve(tenant));
     }
 
     @GetMapping("/trial-balance")
     public GeneralLedgerService.TrialBalance trialBalance(@RequestParam(required = false) String tenant) {
-        return gl.trialBalance(scope(tenant));
+        return gl.trialBalance(tenantScope.resolve(tenant));
     }
 
     @GetMapping("/safeguarding")
     public GeneralLedgerService.Safeguarding safeguarding(@RequestParam(required = false) String tenant) {
-        return gl.safeguarding(scope(tenant));
+        return gl.safeguarding(tenantScope.resolve(tenant));
     }
 
     @GetMapping("/journal")
     public List<JournalEntry> journal(@RequestParam(required = false) String tenant,
                                       @RequestParam(defaultValue = "50") int limit) {
-        return gl.journal(scope(tenant), limit);
-    }
-
-    private static String scope(String tenant) {
-        return (tenant == null || tenant.isBlank() || "all".equalsIgnoreCase(tenant)) ? null : tenant;
+        return gl.journal(tenantScope.resolve(tenant), limit);
     }
 }

@@ -21,6 +21,29 @@ import type {
 
 export const API_BASE = (import.meta.env.VITE_API_BASE as string) || 'http://localhost:8081'
 
+// ---------- Auth: bearer-token injection + 401 handling (installed once) ----------
+let authToken: string | null = null
+let onUnauthorized: (() => void) | null = null
+export function setAuthToken(token: string | null) { authToken = token }
+export function setUnauthorizedHandler(fn: () => void) { onUnauthorized = fn }
+
+const _origFetch = window.fetch.bind(window)
+window.fetch = async (input: RequestInfo | URL, init?: RequestInit): Promise<Response> => {
+  const url = typeof input === 'string' ? input : input instanceof URL ? input.href : input.url
+  let nextInit = init
+  if (url.startsWith(API_BASE) && authToken && !url.includes('/api/auth/login')) {
+    nextInit = {
+      ...init,
+      headers: { ...(init?.headers as Record<string, string> | undefined), Authorization: `Bearer ${authToken}` },
+    }
+  }
+  const res = await _origFetch(input, nextInit)
+  if (res.status === 401 && url.startsWith(API_BASE) && !url.includes('/api/auth/')) {
+    onUnauthorized?.() // token expired/invalid -> drop to login
+  }
+  return res
+}
+
 /** Mirror of backend com.pggateway.ingest.CanonicalEvent */
 interface CanonicalEvent {
   eventId: string

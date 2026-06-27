@@ -1,10 +1,13 @@
 import type { ReactNode } from 'react'
 import { NavLink } from 'react-router-dom'
-import { ChevronDown, ShieldCheck } from 'lucide-react'
+import { ChevronDown, ShieldCheck, LogOut } from 'lucide-react'
 import { useQuery } from '@tanstack/react-query'
 import { cn } from '../lib/cn'
 import { useTenant } from '../lib/tenant'
+import { useAuth } from '../lib/auth'
 import { fetchTenants } from '../lib/api'
+
+const ROLE_LABEL: Record<string, string> = { ADMIN: 'Platform Admin', PJP: 'Operator PJP', ANALYST: 'Analis Fraud' }
 
 /**
  * App shell. DESIGN.md §6/§9:
@@ -53,8 +56,9 @@ function TopBar() {
           ))}
         </nav>
 
-        <div className="ml-auto">
+        <div className="ml-auto flex items-center gap-3">
           <TenantSelect />
+          <UserMenu />
         </div>
       </div>
     </header>
@@ -64,8 +68,20 @@ function TopBar() {
 /** Tenant scope selector — re-scopes the whole dashboard to one PJP (or all). */
 function TenantSelect() {
   const { tenant, setTenant } = useTenant()
+  const { user } = useAuth()
   const { data } = useQuery<string[], Error>({ queryKey: ['tenants'], queryFn: fetchTenants })
   const tenants = data ?? []
+
+  // A tenant-locked operator (PJP) can't switch scope — show a static chip of their PJP.
+  if (user && user.tenantId) {
+    return (
+      <div className="inline-flex items-center gap-2 rounded-md border border-white/15 bg-white/5 py-1.5 pl-3 pr-3 text-body font-semibold text-[#e8eef6]">
+        <span aria-hidden="true" className="h-2 w-2 rounded-full bg-success" />
+        {user.tenantId}
+      </div>
+    )
+  }
+
   return (
     <div className="relative">
       <span
@@ -87,6 +103,29 @@ function TenantSelect() {
         aria-hidden="true"
         className="pointer-events-none absolute right-2.5 top-1/2 h-4 w-4 -translate-y-1/2 opacity-80"
       />
+    </div>
+  )
+}
+
+/** Current user + sign out. */
+function UserMenu() {
+  const { user, logout } = useAuth()
+  if (!user) return null
+  return (
+    <div className="flex items-center gap-2 border-l border-white/15 pl-3">
+      <div className="hidden text-right leading-tight sm:block">
+        <div className="text-small font-semibold text-white">{user.displayName}</div>
+        <div className="text-micro text-white/60">{ROLE_LABEL[user.role] ?? user.role}</div>
+      </div>
+      <button
+        type="button"
+        onClick={logout}
+        aria-label="Keluar"
+        title="Keluar"
+        className="grid h-8 w-8 place-items-center rounded-md text-white/70 hover:bg-white/10 hover:text-white"
+      >
+        <LogOut aria-hidden="true" className="h-4 w-4" />
+      </button>
     </div>
   )
 }

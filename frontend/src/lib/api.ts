@@ -257,6 +257,27 @@ export async function deleteRule(id: string): Promise<void> {
   if (!res.ok && res.status !== 204) throw new Error(`Gagal menghapus rule (${res.status})`)
 }
 
+// ---------- FDS watchlist (dynamic blocklist) ----------
+export async function fetchWatchlist(): Promise<string[]> {
+  const res = await fetch(`${API_BASE}/api/fds/watchlist`)
+  if (!res.ok) throw new Error(`API ${res.status}`)
+  return (await res.json()) as string[]
+}
+
+export async function addWatchlist(account: string): Promise<void> {
+  const res = await fetch(`${API_BASE}/api/fds/watchlist`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ account }),
+  })
+  if (!res.ok) throw new Error(await errorMessage(res, `Gagal menambah daftar pantau (${res.status})`))
+}
+
+export async function removeWatchlist(account: string): Promise<void> {
+  const res = await fetch(`${API_BASE}/api/fds/watchlist/${encodeURIComponent(account)}`, { method: 'DELETE' })
+  if (!res.ok && res.status !== 204) throw new Error(`Gagal menghapus dari daftar pantau (${res.status})`)
+}
+
 // ---------- Developer / API keys ----------
 
 export async function fetchKeys(): Promise<ApiKey[]> {

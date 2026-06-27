@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Plus, Trash2, Pencil, Power, ShieldAlert } from 'lucide-react'
+import { Plus, Trash2, Pencil, Power, ShieldAlert, Ban } from 'lucide-react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { PageHeader } from '../components/PageHeader'
 import { Card, CardBody, CardHeader } from '../components/ui/Card'
@@ -7,12 +7,17 @@ import { Button } from '../components/ui/Button'
 import { Badge } from '../components/ui/Badge'
 import { Skeleton } from '../components/ui/Skeleton'
 import { EmptyState, ErrorState } from '../components/StateViews'
-import { fetchRules, createRule, updateRule, deleteRule } from '../lib/api'
+import {
+  fetchRules, createRule, updateRule, deleteRule,
+  fetchWatchlist, addWatchlist, removeWatchlist,
+} from '../lib/api'
 import type { FdsRule } from '../data/types'
 
 const FEATURES = [
-  '#amountMinor', '#amountRupiah', '#velocity10s', '#velocity24h',
-  '#subThreshold24h', '#aggregate24hMinor', '#channel', '#account',
+  '#amountMinor', '#amountRupiah', '#velocity10s', '#velocity1m', '#velocity10m',
+  '#velocity1h', '#velocity24h', '#subThreshold24h', '#aggregate24hMinor',
+  '#amountZScore', '#newCounterparty', '#fanOut24h', '#offHours', '#roundAmount',
+  '#hourOfDayWib', '#channel', '#account',
 ]
 
 type Draft = { name: string; report: string; score: number; expression: string }
@@ -111,7 +116,81 @@ export default function Rules() {
           )}
         </div>
       )}
+
+      <WatchlistCard />
     </>
+  )
+}
+
+function WatchlistCard() {
+  const qc = useQueryClient()
+  const query = useQuery<string[], Error>({ queryKey: ['watchlist'], queryFn: fetchWatchlist })
+  const [account, setAccount] = useState('')
+  const invalidate = () => {
+    qc.invalidateQueries({ queryKey: ['watchlist'] })
+    qc.invalidateQueries({ queryKey: ['alerts'] })
+  }
+  const add = useMutation({
+    mutationFn: (a: string) => addWatchlist(a),
+    onSuccess: () => { setAccount(''); invalidate() },
+  })
+  const remove = useMutation({ mutationFn: (a: string) => removeWatchlist(a), onSuccess: invalidate })
+  const inputCls = 'w-full rounded-md border border-line bg-surface px-3 py-2 text-body text-ink'
+
+  return (
+    <Card className="mt-6">
+      <CardHeader
+        title="Daftar Pantau (Watchlist)"
+        action={<Ban aria-hidden="true" className="h-4 w-4 text-muted" />}
+      />
+      <CardBody>
+        <p className="mb-3 text-small text-muted">
+          Akun yang diblokir (mule, pihak tersanksi, DTTOT). Transaksi dari/ke akun ini langsung
+          mendapat sinyal risiko tertinggi. Bisa ditambah/dihapus runtime — tanpa <i>redeploy</i>.
+        </p>
+        <form
+          className="mb-4 flex gap-2"
+          onSubmit={(e) => { e.preventDefault(); if (account.trim()) add.mutate(account.trim()) }}
+        >
+          <input
+            className={inputCls}
+            value={account}
+            onChange={(e) => setAccount(e.target.value)}
+            placeholder="mis. ACC-1234 atau nomor rekening"
+          />
+          <Button type="submit" className="gap-1 whitespace-nowrap" disabled={add.isPending || !account.trim()}>
+            <Plus aria-hidden="true" className="h-4 w-4" /> Tambah
+          </Button>
+        </form>
+        {add.error ? <p className="mb-2 text-small text-danger">{add.error.message}</p> : null}
+
+        {query.isError ? (
+          <ErrorState onRetry={() => query.refetch()} />
+        ) : query.isPending ? (
+          <div className="space-y-2">
+            {Array.from({ length: 2 }).map((_, i) => <Skeleton key={i} className="h-9 w-full" />)}
+          </div>
+        ) : query.data.length === 0 ? (
+          <EmptyState icon={Ban} title="Daftar pantau kosong" description="Belum ada akun yang diblokir." />
+        ) : (
+          <ul className="divide-y divide-line">
+            {query.data.map((acc) => (
+              <li key={acc} className="flex items-center justify-between gap-2 py-2">
+                <code className="font-mono text-body text-ink">{acc}</code>
+                <Button
+                  variant="secondary"
+                  className="h-8 gap-1 px-2 text-small text-danger"
+                  disabled={remove.isPending}
+                  onClick={() => { if (confirm(`Hapus ${acc} dari daftar pantau?`)) remove.mutate(acc) }}
+                >
+                  <Trash2 aria-hidden="true" className="h-3.5 w-3.5" /> Hapus
+                </Button>
+              </li>
+            ))}
+          </ul>
+        )}
+      </CardBody>
+    </Card>
   )
 }
 

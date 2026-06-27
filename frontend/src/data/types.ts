@@ -120,6 +120,16 @@ export interface ReconSummary {
   diffMinorTotal: number
 }
 
+// Audit entry (mirror backend com.pggateway.audit.AuditEntry)
+export interface AuditEntry {
+  id: string
+  timestamp: string
+  actor: string
+  action: string
+  target: string
+  detail: string
+}
+
 export type MismatchStatus = 'selisih nominal' | 'satu sisi' | 'cocok'
 
 export interface Mismatch {

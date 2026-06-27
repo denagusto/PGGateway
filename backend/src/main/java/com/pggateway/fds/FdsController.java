@@ -1,5 +1,6 @@
 package com.pggateway.fds;
 
+import com.pggateway.audit.AuditService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -17,9 +18,11 @@ import java.util.List;
 public class FdsController {
 
     private final AlertStore store;
+    private final AuditService audit;
 
-    public FdsController(AlertStore store) {
+    public FdsController(AlertStore store, AuditService audit) {
         this.store = store;
+        this.audit = audit;
     }
 
     /** ?status=OPEN|CONFIRMED_FRAUD|FALSE_POSITIVE (default OPEN), ?limit=N. */
@@ -42,7 +45,10 @@ public class FdsController {
         if ("confirm_fraud".equalsIgnoreCase(req.verdict())) v = AlertStatus.CONFIRMED_FRAUD;
         else if ("false_positive".equalsIgnoreCase(req.verdict())) v = AlertStatus.FALSE_POSITIVE;
         else return ResponseEntity.badRequest().build();
-        return store.setVerdict(id, v).map(ResponseEntity::ok).orElse(ResponseEntity.notFound().build());
+        java.util.Optional<Alert> updated = store.setVerdict(id, v);
+        if (updated.isEmpty()) return ResponseEntity.notFound().build();
+        audit.append("alert.verdict", id, v.name());
+        return ResponseEntity.ok(updated.get());
     }
 
     public record VerdictRequest(String verdict) {}

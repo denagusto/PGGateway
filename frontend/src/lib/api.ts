@@ -16,6 +16,7 @@ import type {
   AccountBalance,
   ReconMismatch,
   ReconSummary,
+  AuditEntry,
 } from '../data/types'
 
 export const API_BASE = (import.meta.env.VITE_API_BASE as string) || 'http://localhost:8081'
@@ -313,4 +314,12 @@ export async function resolveMismatch(txnRef: string): Promise<void> {
     method: 'POST',
   })
   if (!res.ok && res.status !== 204) throw new Error(`Gagal menyelesaikan (${res.status})`)
+}
+
+// ---------- Audit log ----------
+
+export async function fetchAudit(limit = 100): Promise<AuditEntry[]> {
+  const res = await fetch(`${API_BASE}/api/audit?limit=${limit}`)
+  if (!res.ok) throw new Error(`API ${res.status}`)
+  return (await res.json()) as AuditEntry[]
 }

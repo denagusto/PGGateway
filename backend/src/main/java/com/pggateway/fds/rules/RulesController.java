@@ -1,5 +1,6 @@
 package com.pggateway.fds.rules;
 
+import com.pggateway.audit.AuditService;
 import com.pggateway.fds.engine.RuleEngine;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -24,10 +25,12 @@ public class RulesController {
 
     private final RuleStore store;
     private final RuleEngine engine;
+    private final AuditService audit;
 
-    public RulesController(RuleStore store, RuleEngine engine) {
+    public RulesController(RuleStore store, RuleEngine engine, AuditService audit) {
         this.store = store;
         this.engine = engine;
+        this.audit = audit;
     }
 
     @GetMapping
@@ -45,7 +48,9 @@ public class RulesController {
         if (rule.expression() == null || !engine.valid(rule.expression())) {
             return ResponseEntity.badRequest().body(Map.of("error", "formula tidak valid (SpEL)"));
         }
-        return ResponseEntity.ok(store.create(rule));
+        Rule created = store.create(rule);
+        audit.append("rule.create", created.id(), created.name());
+        return ResponseEntity.ok(created);
     }
 
     @PutMapping("/{id}")
@@ -53,13 +58,16 @@ public class RulesController {
         if (patch.containsKey("expression") && !engine.valid(String.valueOf(patch.get("expression")))) {
             return ResponseEntity.badRequest().body(Map.of("error", "formula tidak valid (SpEL)"));
         }
-        return store.update(id, patch)
-                .map(r -> ResponseEntity.ok((Object) r))
-                .orElse(ResponseEntity.notFound().build());
+        java.util.Optional<Rule> r = store.update(id, patch);
+        if (r.isEmpty()) return ResponseEntity.notFound().build();
+        audit.append("rule.update", id, "");
+        return ResponseEntity.ok(r.get());
     }
 
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> delete(@PathVariable String id) {
-        return store.delete(id) ? ResponseEntity.noContent().build() : ResponseEntity.notFound().build();
+        boolean deleted = store.delete(id);
+        if (deleted) audit.append("rule.delete", id, "");
+        return deleted ? ResponseEntity.noContent().build() : ResponseEntity.notFound().build();
     }
 }

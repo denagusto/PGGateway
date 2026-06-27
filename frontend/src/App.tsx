@@ -7,7 +7,7 @@ import Rules from './pages/Rules'
 import Developer from './pages/Developer'
 import Ledger from './pages/Ledger'
 import FdsQueue from './pages/FdsQueue'
-import { Placeholder } from './pages/Placeholder'
+import Audit from './pages/Audit'
 
 export default function App() {
   return (
@@ -20,7 +20,7 @@ export default function App() {
         <Route path="/fds/:id" element={<AlertDetail />} />
         <Route path="/rekonsiliasi" element={<Reconciliation />} />
         <Route path="/developer" element={<Developer />} />
-        <Route path="/audit" element={<Placeholder title="Audit Log" />} />
+        <Route path="/audit" element={<Audit />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </AppShell>

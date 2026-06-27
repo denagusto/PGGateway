@@ -1,5 +1,6 @@
 package com.pggateway.developer;
 
+import com.pggateway.audit.AuditService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -22,9 +23,11 @@ import java.util.Map;
 public class DeveloperController {
 
     private final ApiKeyService keys;
+    private final AuditService audit;
 
-    public DeveloperController(ApiKeyService keys) {
+    public DeveloperController(ApiKeyService keys, AuditService audit) {
         this.keys = keys;
+        this.audit = audit;
     }
 
     public record CreateKeyRequest(String name, String env, List<String> scopes) {}
@@ -32,7 +35,10 @@ public class DeveloperController {
     /** Create a key — response carries the plaintext key + secret shown ONCE. */
     @PostMapping("/keys")
     public ApiKeyService.IssuedKey create(@RequestBody CreateKeyRequest req) {
-        return keys.create(req.name(), req.env(), req.scopes());
+        ApiKeyService.IssuedKey issued = keys.create(req.name(), req.env(), req.scopes());
+        audit.append("key.create", issued.key().id(),
+                issued.key().name() + " (" + issued.key().env() + ")");
+        return issued;
     }
 
     @GetMapping("/keys")
@@ -42,7 +48,9 @@ public class DeveloperController {
 
     @DeleteMapping("/keys/{id}")
     public ResponseEntity<Void> revoke(@PathVariable String id) {
-        return keys.revoke(id) ? ResponseEntity.noContent().build() : ResponseEntity.notFound().build();
+        boolean ok = keys.revoke(id);
+        if (ok) audit.append("key.revoke", id, "");
+        return ok ? ResponseEntity.noContent().build() : ResponseEntity.notFound().build();
     }
 
     /** Demo of authenticated access: send your key as X-API-Key. */

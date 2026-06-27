@@ -1,5 +1,6 @@
 package com.pggateway.recon;
 
+import com.pggateway.audit.AuditService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -15,9 +16,11 @@ import java.util.List;
 public class ReconciliationController {
 
     private final ReconciliationService recon;
+    private final AuditService audit;
 
-    public ReconciliationController(ReconciliationService recon) {
+    public ReconciliationController(ReconciliationService recon, AuditService audit) {
         this.recon = recon;
+        this.audit = audit;
     }
 
     @GetMapping("/mismatches")
@@ -33,6 +36,7 @@ public class ReconciliationController {
     @PostMapping("/{txnRef}/resolve")
     public ResponseEntity<Void> resolve(@PathVariable String txnRef) {
         recon.resolve(txnRef);
+        audit.append("recon.resolve", txnRef, "");
         return ResponseEntity.noContent().build();
     }
 }

@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { KeyRound, Plus, Copy, Trash2, ExternalLink, BookOpen, ShieldAlert, ShieldCheck, Code2 } from 'lucide-react'
+import { KeyRound, Plus, Copy, Trash2, ExternalLink, BookOpen, ShieldAlert, ShieldCheck, Code2, Download } from 'lucide-react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { PageHeader } from '../components/PageHeader'
 import { Card, CardBody, CardHeader } from '../components/ui/Card'
@@ -59,7 +59,12 @@ export default function Developer() {
             <p className="mt-2 text-small text-warning">
               Simpan di tempat aman. Secret tidak akan ditampilkan ulang.
             </p>
-            <Button variant="secondary" className="mt-3" onClick={() => setIssued(null)}>Tutup</Button>
+            <div className="mt-3 flex gap-2">
+              <Button className="gap-1.5" onClick={() => downloadCredentials(issued)}>
+                <Download aria-hidden="true" className="h-4 w-4" /> Unduh JSON
+              </Button>
+              <Button variant="secondary" onClick={() => setIssued(null)}>Tutup</Button>
+            </div>
           </CardBody>
         </Card>
       ) : null}
@@ -216,6 +221,37 @@ curl -X POST ${API_BASE}/api/ingest/mirror \\
       </div>
     </>
   )
+}
+
+/** Download the new credential as a self-contained JSON (à la a Google service-account key). */
+function downloadCredentials(issued: IssuedKey) {
+  const cred = {
+    client_key: issued.apiKey,
+    client_secret: issued.secret,
+    name: issued.key.name,
+    env: issued.key.env,
+    tenant_id: issued.key.tenantId,
+    scopes: issued.key.scopes,
+    base_url: API_BASE,
+    ingest_endpoint: '/api/ingest/mirror',
+    signature: {
+      algorithm: 'HMAC-SHA512 (Base64)',
+      headers: ['X-CLIENT-KEY', 'X-TIMESTAMP', 'X-SIGNATURE'],
+      string_to_sign: '{METHOD}:{path}:{X-CLIENT-KEY}:{lowerHex(SHA-256(body))}:{X-TIMESTAMP}',
+      timestamp_format: 'ISO-8601 with offset (±5 min window)',
+    },
+    issued_at: new Date().toISOString(),
+    note: 'Rahasia. Jangan commit ke VCS. Secret tidak dapat dipulihkan jika hilang.',
+  }
+  const blob = new Blob([JSON.stringify(cred, null, 2)], { type: 'application/json' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = `pggateway-${issued.key.env}-${issued.apiKey.slice(0, 20)}.json`
+  document.body.appendChild(a)
+  a.click()
+  a.remove()
+  URL.revokeObjectURL(url)
 }
 
 function Secret({ label, value }: { label: string; value: string }) {

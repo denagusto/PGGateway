@@ -6,6 +6,7 @@ import { Card, CardBody, CardHeader } from '../components/ui/Card'
 import { Button } from '../components/ui/Button'
 import { Badge } from '../components/ui/Badge'
 import { Input, Field } from '../components/ui/Input'
+import { TagInput } from '../components/ui/TagInput'
 import { Skeleton } from '../components/ui/Skeleton'
 import { EmptyState, ErrorState } from '../components/StateViews'
 import {
@@ -265,7 +266,7 @@ function RuleForm({
           <Input value={d.name} onChange={(e) => setD({ ...d, name: e.target.value })} placeholder="mis. QRIS besar tak wajar" />
         </Field>
         <Field label="Tag (opsional)">
-          <Input value={d.report} onChange={(e) => setD({ ...d, report: e.target.value })} placeholder="mis. LTKM, mule, velocity" />
+          <TagInput value={d.report} onChange={(v) => setD({ ...d, report: v })} placeholder="ketik lalu Enter — mis. LTKM" />
         </Field>
       </div>
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-4">

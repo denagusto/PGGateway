@@ -5,6 +5,8 @@ import { PageHeader } from '../components/PageHeader'
 import { Card, CardBody, CardHeader } from '../components/ui/Card'
 import { Button } from '../components/ui/Button'
 import { Badge } from '../components/ui/Badge'
+import { Input, Field } from '../components/ui/Input'
+import { Select } from '../components/ui/Select'
 import { Skeleton } from '../components/ui/Skeleton'
 import { EmptyState, ErrorState } from '../components/StateViews'
 import { fetchKeys, createKey, revokeKey, API_BASE } from '../lib/api'
@@ -36,8 +38,6 @@ export default function Developer() {
   const toggleScope = (s: string) =>
     setScopes((cur) => (cur.includes(s) ? cur.filter((x) => x !== s) : [...cur, s]))
 
-  const inputCls = 'w-full rounded-md border border-line bg-surface px-3 py-2 text-body text-ink'
-
   return (
     <>
       <PageHeader
@@ -65,17 +65,15 @@ export default function Developer() {
         <Card>
           <CardHeader title="Buat API Key" />
           <CardBody>
-            <label className="block">
-              <span className="text-small text-muted">Nama</span>
-              <input className={inputCls} value={name} onChange={(e) => setName(e.target.value)} placeholder="mis. Integrasi App PJP" />
-            </label>
-            <label className="mt-3 block">
-              <span className="text-small text-muted">Environment</span>
-              <select className={inputCls} value={env} onChange={(e) => setEnv(e.target.value)}>
+            <Field label="Nama">
+              <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="mis. Integrasi App PJP" />
+            </Field>
+            <Field label="Environment" className="mt-3">
+              <Select value={env} onChange={(e) => setEnv(e.target.value)}>
                 <option value="sandbox">sandbox</option>
                 <option value="production">production</option>
-              </select>
-            </label>
+              </Select>
+            </Field>
             <div className="mt-3">
               <span className="text-small text-muted">Scopes</span>
               <div className="mt-1 space-y-1">

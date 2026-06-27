@@ -11,6 +11,7 @@ import { Skeleton } from '../components/ui/Skeleton'
 import { RiskGauge } from '../components/ui/RiskGauge'
 import { EmptyState, ErrorState } from '../components/StateViews'
 import { useScreenState } from '../lib/useScreenState'
+import { Textarea } from '../components/ui/Input'
 import { formatRupiah } from '../lib/format'
 import { scoreMeta, bandMeta } from '../lib/score'
 import { fetchAlertDetail, postAlertVerdict } from '../lib/api'
@@ -119,7 +120,7 @@ function ReadyDetail({
             </p>
           </div>
           <div className="flex items-center gap-2">
-            {d.report ? <Badge tone="neutral">{d.report} · PPATK</Badge> : null}
+            {d.report ? <Badge tone="neutral">{d.report}</Badge> : null}
             {d.status === 'terbuka' && resolved === null ? (
               <Badge tone="danger">TERBUKA · prioritas {d.prioritas}</Badge>
             ) : (
@@ -204,12 +205,11 @@ function ReadyDetail({
             </div>
             <label className="mt-3 block">
               <span className="sr-only">Catatan kasus</span>
-              <textarea
+              <Textarea
                 value={note}
                 onChange={(e) => setNote(e.target.value)}
                 placeholder="Catatan kasus…"
                 rows={3}
-                className="w-full rounded-md border border-line bg-surface px-3 py-2 text-body text-ink placeholder:text-muted"
               />
             </label>
             <p className="mt-2 text-small text-muted">

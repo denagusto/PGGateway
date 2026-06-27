@@ -52,6 +52,7 @@ export default {
         sm: '6px',
         md: '8px',
         lg: '10px',
+        xl: '14px',
       },
       spacing: {
         // 8px scale supplement
@@ -65,6 +66,10 @@ export default {
       },
       boxShadow: {
         popover: '0 8px 24px rgba(16, 24, 40, 0.12)',
+        // subtle elevation for a modern fintech surface (not flat, not heavy)
+        card: '0 1px 2px rgba(16, 24, 40, 0.04), 0 1px 3px rgba(16, 24, 40, 0.05)',
+        'card-hover': '0 4px 14px rgba(16, 24, 40, 0.08)',
+        btn: '0 1px 2px rgba(16, 24, 40, 0.08)',
       },
       keyframes: {
         'slide-fade-in': {

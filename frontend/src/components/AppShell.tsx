@@ -23,8 +23,8 @@ const NAV: { to: string; label: string }[] = [
 
 function TopBar() {
   return (
-    <header className="fixed inset-x-0 top-0 z-40 h-14 bg-primary text-white">
-      <div className="mx-auto flex h-full max-w-[1180px] items-center gap-6 px-4">
+    <header className="fixed inset-x-0 top-0 z-40 h-14 border-b border-white/5 bg-primary text-white">
+      <div className="flex h-full w-full items-center gap-6 px-6">
         <div className="flex items-center gap-2 font-bold">
           <ShieldCheck aria-hidden="true" className="h-5 w-5 text-[#e8eef6]" />
           <span className="text-h2 tracking-tight">PGGateway</span>
@@ -92,7 +92,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   return (
     <div className="min-h-screen bg-bg">
       <TopBar />
-      <main className="mx-auto max-w-[1180px] px-4 pb-12 pt-[72px]">{children}</main>
+      <main className="w-full px-6 pb-12 pt-[76px]">{children}</main>
     </div>
   )
 }

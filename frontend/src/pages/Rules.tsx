@@ -5,6 +5,7 @@ import { PageHeader } from '../components/PageHeader'
 import { Card, CardBody, CardHeader } from '../components/ui/Card'
 import { Button } from '../components/ui/Button'
 import { Badge } from '../components/ui/Badge'
+import { Input, Field } from '../components/ui/Input'
 import { Skeleton } from '../components/ui/Skeleton'
 import { EmptyState, ErrorState } from '../components/StateViews'
 import {
@@ -21,7 +22,7 @@ const FEATURES = [
 ]
 
 type Draft = { name: string; report: string; score: number; expression: string }
-const EMPTY: Draft = { name: '', report: 'LTKM', score: 70, expression: '' }
+const EMPTY: Draft = { name: '', report: '', score: 70, expression: '' }
 
 export default function Rules() {
   const qc = useQueryClient()
@@ -135,7 +136,6 @@ function WatchlistCard() {
     onSuccess: () => { setAccount(''); invalidate() },
   })
   const remove = useMutation({ mutationFn: (a: string) => removeWatchlist(a), onSuccess: invalidate })
-  const inputCls = 'w-full rounded-md border border-line bg-surface px-3 py-2 text-body text-ink'
 
   return (
     <Card className="mt-6">
@@ -152,8 +152,7 @@ function WatchlistCard() {
           className="mb-4 flex gap-2"
           onSubmit={(e) => { e.preventDefault(); if (account.trim()) add.mutate(account.trim()) }}
         >
-          <input
-            className={inputCls}
+          <Input
             value={account}
             onChange={(e) => setAccount(e.target.value)}
             placeholder="mis. ACC-1234 atau nomor rekening"
@@ -257,37 +256,40 @@ function RuleForm({
   onSubmit: (d: Draft) => void
 }) {
   const [d, setD] = useState<Draft>(initial)
-  const inputCls = 'w-full rounded-md border border-line bg-surface px-3 py-2 text-body text-ink'
 
   return (
-    <div className="space-y-3">
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-        <label className="sm:col-span-2">
-          <span className="text-small text-muted">Nama</span>
-          <input className={inputCls} value={d.name} onChange={(e) => setD({ ...d, name: e.target.value })} placeholder="mis. QRIS besar tak wajar" />
-        </label>
-        <label>
-          <span className="text-small text-muted">Laporan (PPATK)</span>
-          <select className={inputCls} value={d.report} onChange={(e) => setD({ ...d, report: e.target.value })}>
-            <option value="LTKM">LTKM</option>
-            <option value="LTKT">LTKT</option>
-            <option value="">— tidak ada —</option>
-          </select>
-        </label>
+    <div className="space-y-4">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+        <Field label="Nama" className="sm:col-span-2">
+          <Input value={d.name} onChange={(e) => setD({ ...d, name: e.target.value })} placeholder="mis. QRIS besar tak wajar" />
+        </Field>
+        <Field label="Tag (opsional)">
+          <Input value={d.report} onChange={(e) => setD({ ...d, report: e.target.value })} placeholder="mis. LTKM, mule, velocity" />
+        </Field>
       </div>
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-4">
-        <label>
-          <span className="text-small text-muted">Skor (0-100)</span>
-          <input type="number" min={0} max={100} className={inputCls} value={d.score} onChange={(e) => setD({ ...d, score: Number(e.target.value) })} />
-        </label>
-        <label className="sm:col-span-3">
-          <span className="text-small text-muted">Formula (SpEL)</span>
-          <input className={inputCls + ' font-mono'} value={d.expression} onChange={(e) => setD({ ...d, expression: e.target.value })} placeholder="#amountMinor >= 50000000000L" />
-        </label>
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-4">
+        <Field label="Skor (0–100)">
+          <Input type="number" min={0} max={100} value={d.score} onChange={(e) => setD({ ...d, score: Number(e.target.value) })} />
+        </Field>
+        <Field label="Formula (SpEL)" className="sm:col-span-3">
+          <Input className="font-mono" value={d.expression} onChange={(e) => setD({ ...d, expression: e.target.value })} placeholder="#amountMinor >= 50000000000L" />
+        </Field>
       </div>
-      <p className="text-small text-muted">
-        Fitur tersedia: {FEATURES.map((f) => <code key={f} className="mr-1 font-mono">{f}</code>)}
-      </p>
+      <div>
+        <span className="mb-1.5 block text-small font-medium text-muted">Fitur tersedia (klik untuk menyisipkan)</span>
+        <div className="flex flex-wrap gap-1.5">
+          {FEATURES.map((f) => (
+            <button
+              key={f}
+              type="button"
+              onClick={() => setD((cur) => ({ ...cur, expression: (cur.expression + (cur.expression && !cur.expression.endsWith(' ') ? ' ' : '') + f) }))}
+              className="rounded-md border border-line bg-bg px-2 py-1 font-mono text-micro text-muted transition-colors hover:border-accent hover:text-accent"
+            >
+              {f}
+            </button>
+          ))}
+        </div>
+      </div>
       {error ? <p className="text-small text-danger">{error}</p> : null}
       <div className="flex gap-2">
         <Button onClick={() => onSubmit(d)} disabled={pending || !d.name.trim() || !d.expression.trim()}>

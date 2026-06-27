@@ -87,7 +87,7 @@ export default function FdsQueue() {
                     <TD numeric className="text-muted">{a.waktu}</TD>
                     <TD>
                       <span className="block text-ink">{a.ruleName}</span>
-                      {a.report ? <span className="text-micro uppercase tracking-wide text-muted">{a.report} · PPATK</span> : null}
+                      {a.report ? <span className="text-micro uppercase tracking-wide text-muted">{a.report}</span> : null}
                     </TD>
                     <TD numeric>{a.account}</TD>
                     <TD numeric align="right">{formatRupiah(a.amount)}</TD>

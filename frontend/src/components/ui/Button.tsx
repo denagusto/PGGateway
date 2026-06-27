@@ -13,11 +13,11 @@ export type ButtonVariant = 'primary' | 'destructive' | 'secondary' | 'ghost'
 
 const variants: Record<ButtonVariant, string> = {
   primary:
-    'bg-primary text-white hover:bg-primary-700 border border-transparent',
+    'bg-primary text-white hover:bg-primary-700 border border-transparent shadow-btn',
   destructive:
-    'bg-danger text-white hover:bg-[#991b1b] border border-transparent',
+    'bg-danger text-white hover:bg-[#991b1b] border border-transparent shadow-btn',
   secondary:
-    'bg-surface text-ink border border-line hover:bg-bg',
+    'bg-surface text-ink border border-line hover:bg-bg hover:border-[#cbd2da] shadow-btn',
   ghost:
     'bg-transparent text-ink border border-transparent hover:bg-bg',
 }

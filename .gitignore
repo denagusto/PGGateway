@@ -1,0 +1,27 @@
+# --- local docs & planning (kept out of the repo) ---
+/docs/
+/DESIGN.md
+.gstack/
+
+# --- Java / Maven (backend) ---
+backend/target/
+*.class
+*.jar
+*.war
+
+# --- Node / Vite (frontend) ---
+node_modules/
+frontend/dist/
+frontend/.vite/
+*.local
+
+# --- logs ---
+*.log
+npm-debug.log*
+
+# --- OS / IDE ---
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.iml

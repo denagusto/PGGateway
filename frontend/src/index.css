@@ -1,0 +1,75 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* base */
+    --bg: #f6f7f9;
+    --surface: #ffffff;
+    --line: #e5e7eb;
+    --ink: #1f2937;
+    --muted: #6b7280;
+
+    /* brand */
+    --primary: #1f3355;
+    --primary-700: #16263f;
+    --accent: #2563eb;
+
+    /* semantic status */
+    --success: #15803d;
+    --success-bg: #dcfce7;
+    --warning: #b45309;
+    --warning-bg: #fef3c7;
+    --danger: #b91c1c;
+    --danger-bg: #fee2e2;
+  }
+
+  html {
+    font-family: 'Inter', -apple-system, 'Segoe UI', Roboto, sans-serif;
+  }
+
+  body {
+    margin: 0;
+    background-color: var(--bg);
+    color: var(--ink);
+    font-size: 13px;
+    line-height: 20px;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  /* Tabular figures ON globally so number columns align */
+  body,
+  table,
+  input,
+  button {
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: 'tnum' 1;
+  }
+
+  /* Visible focus ring on every interactive element (a11y §10) */
+  a:focus-visible,
+  button:focus-visible,
+  input:focus-visible,
+  textarea:focus-visible,
+  [tabindex]:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.001ms !important;
+      transition-duration: 0.001ms !important;
+    }
+  }
+}
+
+/* Utility: numeric/money cells (explicit, in case a parent overrides) */
+.tnum {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: 'tnum' 1;
+}

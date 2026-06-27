@@ -5,11 +5,17 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import './index.css'
 import App from './App.tsx'
 
+// Money dashboard: keep every list live without manual refresh. Smart polling — refetch on an
+// interval, on window refocus, and on reconnect; pause while the tab is hidden to save resources.
+// (For true server push we layer SSE on top next; this stays as the resilient fallback.)
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
       retry: false,
-      refetchOnWindowFocus: false,
+      refetchInterval: 5000,
+      refetchIntervalInBackground: false,
+      refetchOnWindowFocus: true,
+      refetchOnReconnect: true,
     },
   },
 })

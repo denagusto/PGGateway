@@ -118,11 +118,14 @@ function ReadyDetail({
               {d.channel} · {formatRupiah(d.jumlah)} · {d.waktuRingkas}
             </p>
           </div>
-          {d.status === 'terbuka' && resolved === null ? (
-            <Badge tone="danger">TERBUKA · prioritas {d.prioritas}</Badge>
-          ) : (
-            <Badge tone="neutral">DITUTUP</Badge>
-          )}
+          <div className="flex items-center gap-2">
+            {d.report ? <Badge tone="neutral">{d.report} · PPATK</Badge> : null}
+            {d.status === 'terbuka' && resolved === null ? (
+              <Badge tone="danger">TERBUKA · prioritas {d.prioritas}</Badge>
+            ) : (
+              <Badge tone="neutral">DITUTUP</Badge>
+            )}
+          </div>
         </div>
       </Card>
 

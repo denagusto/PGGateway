@@ -73,6 +73,7 @@ export default function Dashboard() {
                 sub={kpi.sub}
                 subTone={kpi.subTone}
                 valueTone={kpi.valueTone}
+                trend={kpi.trend}
               />
             ))}
       </div>
@@ -211,7 +212,14 @@ function AlertList({
                 className="h-2.5 w-2.5 shrink-0 rounded-full"
                 style={{ backgroundColor: meta.color }}
               />
-              <span className="flex-1 text-body text-ink">{a.judul}</span>
+              <span className="flex-1">
+                <span className="block text-body text-ink">{a.judul}</span>
+                {a.report ? (
+                  <span className="text-micro uppercase tracking-wide text-muted">
+                    {a.report} · PPATK
+                  </span>
+                ) : null}
+              </span>
               <span className="shrink-0 text-small text-muted tnum">
                 skor{' '}
                 <span className="font-semibold" style={{ color: meta.color }}>

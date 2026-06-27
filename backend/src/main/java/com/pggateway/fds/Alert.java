@@ -5,7 +5,14 @@ import com.pggateway.ingest.Channel;
 import java.time.Instant;
 import java.util.List;
 
-/** A fraud alert raised by a detector for one transaction. */
+/**
+ * A fraud / AML alert raised by a rule for one transaction.
+ *
+ * @param rule     the rule id that fired (e.g. "structuring")
+ * @param ruleName human label of that rule (denormalized for the UI)
+ * @param report   PPATK report this maps to ("LTKM" or "LTKT") — guidance for the compliance
+ *                 officer; the system flags, a human decides whether to file.
+ */
 public record Alert(
         String alertId,
         String txnEventId,
@@ -15,13 +22,14 @@ public record Alert(
         long amountMinor,
         int score,
         String rule,
+        String ruleName,
+        String report,
         List<String> reasons,
         AlertStatus status,
         Instant createdAt
 ) {
-    /** Copy with a new status (records are immutable). */
     public Alert withStatus(AlertStatus newStatus) {
         return new Alert(alertId, txnEventId, txnRef, account, channel, amountMinor,
-                score, rule, reasons, newStatus, createdAt);
+                score, rule, ruleName, report, reasons, newStatus, createdAt);
     }
 }

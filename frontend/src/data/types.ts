@@ -15,6 +15,7 @@ export interface FraudAlertSummary {
   judul: string
   score: number
   menitLalu: number
+  report?: string // 'LTKM' | 'LTKT' (PPATK)
 }
 
 export interface Kpi {
@@ -23,6 +24,7 @@ export interface Kpi {
   sub?: string
   subTone?: 'muted' | 'success' | 'warning' | 'danger'
   valueTone?: 'ink' | 'success' | 'warning' | 'danger'
+  trend?: 'up' | 'down' // renders a lucide icon (not a char)
 }
 
 export interface AlertDetail {
@@ -35,6 +37,7 @@ export interface AlertDetail {
   prioritas: 'tinggi' | 'sedang' | 'rendah'
   score: number
   rule: string
+  report?: string // 'LTKM' | 'LTKT' (PPATK)
   konteks: {
     jumlah: number
     channel: string

@@ -16,9 +16,10 @@ export const dashboardKpis: Kpi[] = [
   {
     label: 'TPS sekarang',
     value: '1.284',
-    sub: '▲ 6% vs 1 jam lalu',
+    sub: '6% vs 1 jam lalu',
     subTone: 'success',
     valueTone: 'ink',
+    trend: 'up',
   },
   {
     label: 'Transaksi hari ini',

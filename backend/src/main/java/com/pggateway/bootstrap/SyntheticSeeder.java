@@ -44,18 +44,22 @@ public class SyntheticSeeder implements ApplicationRunner {
 
     @Override
     public void run(ApplicationArguments args) {
-        // normal traffic — each account stays below the velocity threshold (5)
+        // normal small traffic — below every threshold, below the velocity count
         String[][] normal = {{"ACC-9", "4"}, {"ACC-21", "3"}, {"ACC-37", "4"},
                 {"ACC-55", "4"}, {"ACC-63", "4"}, {"ACC-71", "4"}};
         for (String[] acc : normal) {
             int n = Integer.parseInt(acc[1]);
             for (int k = 0; k < n; k++) {
-                seed(acc[0], TYPES[rnd.nextInt(TYPES.length)], (rnd.nextInt(400) + 30L) * 1000L);
+                seed(acc[0], TYPES[rnd.nextInt(TYPES.length)], (rnd.nextInt(400) + 30L) * 1000L); // Rp 30rb-430rb
             }
         }
-        // fraud #1 — amount anomaly: one jumbo transfer
-        seed("ACC-21", "TRANSFER_INTRABANK", 9_500_000L);
-        // fraud #2 — velocity: a burst on a fresh account
+        // LTKT — one transaction >= Rp 500 juta
+        seed("ACC-BIG", "TRANSFER_INTRABANK", 600_000_000L);
+        // Structuring (LTKM) — several large sub-Rp 500 juta transactions from one account
+        for (int k = 0; k < 4; k++) {
+            seed("ACC-STRUCT", "TRANSFER_INTRABANK", 300_000_000L);
+        }
+        // Unusual velocity (LTKM) — a burst on a fresh account
         for (int k = 0; k < 7; k++) {
             seed("ACC-99", "QRIS_MPM", (rnd.nextInt(200) + 50L) * 1000L);
         }

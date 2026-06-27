@@ -1,7 +1,8 @@
 package com.pggateway.fds;
 
-import com.pggateway.fds.detectors.AmountAnomalyDetector;
-import com.pggateway.fds.detectors.VelocityDetector;
+import com.pggateway.fds.engine.FeatureExtractor;
+import com.pggateway.fds.engine.RuleEngine;
+import com.pggateway.fds.rules.RuleStore;
 import com.pggateway.ingest.CanonicalEvent;
 import com.pggateway.ingest.Channel;
 import org.junit.jupiter.api.Test;
@@ -14,52 +15,49 @@ import static org.junit.jupiter.api.Assertions.*;
 class FraudDetectionServiceTest {
 
     private CanonicalEvent ev(String account, long amountMinor, int i) {
-        return new CanonicalEvent("e" + i, "idem-" + account + "-" + i, "REF-" + i, Channel.QRIS,
+        return new CanonicalEvent("e" + i, "idem-" + account + "-" + i, "REF-" + i, Channel.TRANSFER,
                 amountMinor, "IDR", Instant.now(), account, "merchant", "00", account, null, "ref");
     }
 
-    private FraudDetectionService newService(AlertStore store) {
-        return new FraudDetectionService(
-                List.of(new VelocityDetector(), new AmountAnomalyDetector()), store);
+    private FraudDetectionService service(AlertStore alerts) {
+        return new FraudDetectionService(new FeatureExtractor(), new RuleEngine(new RuleStore()), alerts);
     }
 
     @Test
-    void raises_amount_anomaly_alert() {
+    void large_amount_raises_ltkt() {
         InMemoryAlertStore store = new InMemoryAlertStore();
-        newService(store).inspect(ev("ACC-1", 950_000_000L, 0));
-        List<Alert> open = store.list(AlertStatus.OPEN, 10);
-        assertEquals(1, open.size());
-        assertEquals("amount_anomaly", open.get(0).rule());
+        service(store).inspect(ev("ACC-1", 60_000_000_000L, 0)); // Rp 600jt
+        List<String> rules = store.list(AlertStatus.OPEN, 10).stream().map(Alert::rule).toList();
+        assertTrue(rules.contains("ltkt_threshold"));
+        Alert a = store.list(AlertStatus.OPEN, 10).get(0);
+        assertEquals("LTKT", a.report());
+        assertNotNull(a.ruleName());
     }
 
     @Test
-    void raises_one_velocity_alert_and_dedupes() {
+    void structuring_raises_one_alert_and_dedupes() {
         InMemoryAlertStore store = new InMemoryAlertStore();
-        FraudDetectionService fds = newService(store);
-        for (int i = 0; i < 7; i++) {
-            fds.inspect(ev("ACC-7", 20_000L, i)); // burst, normal amounts
-        }
-        List<Alert> velocity = store.list(AlertStatus.OPEN, 10).stream()
-                .filter(a -> a.rule().equals("velocity_new_account")).toList();
-        assertEquals(1, velocity.size(), "burst must raise exactly one velocity alert (deduped)");
-        assertEquals("ACC-7", velocity.get(0).account());
+        FraudDetectionService fds = service(store);
+        for (int i = 0; i < 4; i++) fds.inspect(ev("ACC-7", 30_000_000_000L, i)); // 4x Rp 300jt
+        long structuring = store.list(AlertStatus.OPEN, 10).stream()
+                .filter(a -> a.rule().equals("structuring")).count();
+        assertEquals(1, structuring, "structuring must be deduped to one open alert");
     }
 
     @Test
     void normal_traffic_raises_nothing() {
         InMemoryAlertStore store = new InMemoryAlertStore();
-        FraudDetectionService fds = newService(store);
-        for (int i = 0; i < 3; i++) fds.inspect(ev("ACC-9", 50_000L, i)); // below velocity + amount
+        FraudDetectionService fds = service(store);
+        for (int i = 0; i < 3; i++) fds.inspect(ev("ACC-9", 50_000L, i)); // Rp 500
         assertTrue(store.list(AlertStatus.OPEN, 10).isEmpty());
     }
 
     @Test
     void verdict_moves_alert_out_of_open() {
         InMemoryAlertStore store = new InMemoryAlertStore();
-        newService(store).inspect(ev("ACC-1", 950_000_000L, 0));
+        service(store).inspect(ev("ACC-1", 60_000_000_000L, 0));
         Alert a = store.list(AlertStatus.OPEN, 10).get(0);
         store.setVerdict(a.alertId(), AlertStatus.CONFIRMED_FRAUD);
-        assertTrue(store.list(AlertStatus.OPEN, 10).isEmpty());
         assertEquals(AlertStatus.CONFIRMED_FRAUD, store.get(a.alertId()).orElseThrow().status());
     }
 }

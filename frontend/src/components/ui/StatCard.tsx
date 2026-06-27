@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react'
+import { TrendingUp, TrendingDown } from 'lucide-react'
 import { cn } from '../../lib/cn'
 import { Card } from './Card'
 
@@ -22,12 +23,14 @@ export function StatCard({
   sub,
   subTone = 'muted',
   valueTone: vTone = 'ink',
+  trend,
 }: {
   label: string
   value: ReactNode
   sub?: ReactNode
   subTone?: 'muted' | 'success' | 'warning' | 'danger'
   valueTone?: StatTone
+  trend?: 'up' | 'down'
 }) {
   const subClass =
     subTone === 'muted'
@@ -46,7 +49,16 @@ export function StatCard({
       <div className={cn('mt-1 text-display font-bold tnum', valueTone[vTone])}>
         {value}
       </div>
-      {sub ? <div className={cn('mt-1 text-small tnum', subClass)}>{sub}</div> : null}
+      {sub ? (
+        <div className={cn('mt-1 flex items-center gap-1 text-small tnum', subClass)}>
+          {trend === 'up' ? (
+            <TrendingUp aria-hidden="true" className="h-3.5 w-3.5" />
+          ) : trend === 'down' ? (
+            <TrendingDown aria-hidden="true" className="h-3.5 w-3.5" />
+          ) : null}
+          <span>{sub}</span>
+        </div>
+      ) : null}
     </Card>
   )
 }

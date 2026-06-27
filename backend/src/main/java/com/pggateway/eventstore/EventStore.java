@@ -19,4 +19,7 @@ public interface EventStore {
 
     /** Most recent events, newest first (for the UI / debugging). */
     List<CanonicalEvent> recent(int limit);
+
+    /** Total events stored. */
+    int size();
 }

@@ -97,17 +97,16 @@ interface AlertDto {
   amountMinor: number
   score: number
   rule: string
+  ruleName: string
+  report: string
   reasons: string[]
   status: 'OPEN' | 'CONFIRMED_FRAUD' | 'FALSE_POSITIVE'
   createdAt: string
 }
 
-const RULE_TITLE: Record<string, string> = {
-  velocity_new_account: 'Velocity tinggi — akun baru',
-  amount_anomaly: 'Nominal transaksi tidak wajar',
-}
-function ruleTitle(rule: string): string {
-  return RULE_TITLE[rule] ?? rule
+/** Rules are dynamic now — prefer the backend-provided ruleName, fall back to the id. */
+function alertTitle(a: AlertDto): string {
+  return a.ruleName && a.ruleName.trim() ? a.ruleName : a.rule
 }
 
 function channelLabel(c: string): string {
@@ -122,7 +121,13 @@ function minutesAgo(iso: string): number {
 }
 
 function toSummary(a: AlertDto): FraudAlertSummary {
-  return { id: a.alertId, judul: ruleTitle(a.rule), score: a.score, menitLalu: minutesAgo(a.createdAt) }
+  return {
+    id: a.alertId,
+    judul: alertTitle(a),
+    score: a.score,
+    menitLalu: minutesAgo(a.createdAt),
+    report: a.report,
+  }
 }
 
 function toDetail(a: AlertDto): AlertDetailT {
@@ -130,7 +135,7 @@ function toDetail(a: AlertDto): AlertDetailT {
   const jumlah = Math.round(a.amountMinor / 100)
   return {
     id: a.alertId,
-    judul: ruleTitle(a.rule),
+    judul: alertTitle(a),
     channel: channelLabel(a.channel),
     jumlah,
     waktuRingkas: new Date(a.createdAt).toLocaleTimeString('id-ID', { hour12: false }),
@@ -138,6 +143,7 @@ function toDetail(a: AlertDto): AlertDetailT {
     prioritas,
     score: a.score,
     rule: a.rule,
+    report: a.report,
     konteks: {
       jumlah,
       channel: channelLabel(a.channel),

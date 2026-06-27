@@ -1,6 +1,8 @@
 package com.pggateway.ledger.gl;
 
 import com.pggateway.ingest.CanonicalEvent;
+import com.pggateway.live.LiveBus;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
@@ -53,8 +55,17 @@ public class GeneralLedgerService {
         return t;
     });
 
-    public GeneralLedgerService(ChartOfAccounts chart) {
+    private final LiveBus live; // nullable in unit tests
+
+    @Autowired
+    public GeneralLedgerService(ChartOfAccounts chart, LiveBus live) {
         this.chart = chart;
+        this.live = live;
+    }
+
+    /** Test constructor — no live stream. */
+    public GeneralLedgerService(ChartOfAccounts chart) {
+        this(chart, null);
     }
 
     private static String tenantOf(CanonicalEvent e) {
@@ -96,6 +107,7 @@ public class GeneralLedgerService {
             long[] dc = bal.computeIfAbsent(p.accountCode(), k -> new long[2]);
             dc[p.debit() ? 0 : 1] += p.amountMinor();
         }
+        if (live != null) live.publish("ledger");
     }
 
     /** Balances for one tenant, or aggregated across all tenants when {@code tenantId} is null. */

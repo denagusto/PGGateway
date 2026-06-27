@@ -1,6 +1,8 @@
 package com.pggateway.ledger;
 
 import com.pggateway.ingest.CanonicalEvent;
+import com.pggateway.live.LiveBus;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
@@ -39,6 +41,18 @@ public class LedgerProjectionService {
         return t;
     });
 
+    private final LiveBus live; // nullable in unit tests
+
+    @Autowired
+    public LedgerProjectionService(LiveBus live) {
+        this.live = live;
+    }
+
+    /** Test constructor — no live stream. */
+    public LedgerProjectionService() {
+        this(null);
+    }
+
     private static String tenantOf(CanonicalEvent e) {
         return (e.tenantId() == null || e.tenantId().isBlank()) ? "PJP-DEMO" : e.tenantId();
     }
@@ -62,6 +76,7 @@ public class LedgerProjectionService {
         }
         volumeByTenant.computeIfAbsent(t, k -> new AtomicLong()).addAndGet(e.amountMinor());
         processed.incrementAndGet();
+        if (live != null) live.publish("accounts");
     }
 
     /** Account balances across all tenants, most active first. */

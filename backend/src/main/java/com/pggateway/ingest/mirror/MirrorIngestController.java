@@ -9,6 +9,7 @@ import com.pggateway.ingest.CanonicalEvent;
 import com.pggateway.ingest.IngestException;
 import com.pggateway.ledger.LedgerProjectionService;
 import com.pggateway.ledger.gl.GeneralLedgerService;
+import com.pggateway.live.LiveBus;
 import com.pggateway.security.SnapSignatureFilter;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -32,16 +33,18 @@ public class MirrorIngestController {
     private final LedgerProjectionService ledger;
     private final GeneralLedgerService gl;
     private final AuditService audit;
+    private final LiveBus live;
 
     public MirrorIngestController(MirrorIngestAdapter adapter, EventStore store,
                                   FraudDetectionService fds, LedgerProjectionService ledger,
-                                  GeneralLedgerService gl, AuditService audit) {
+                                  GeneralLedgerService gl, AuditService audit, LiveBus live) {
         this.adapter = adapter;
         this.store = store;
         this.fds = fds;
         this.ledger = ledger;
         this.gl = gl;
         this.audit = audit;
+        this.live = live;
     }
 
     @PostMapping("/mirror")
@@ -57,6 +60,7 @@ public class MirrorIngestController {
             gl.submit(event);     // async double-entry posting to the general ledger
             audit.append("ingest.mirror", event.txnRef(),
                     (tenantId == null ? "?" : tenantId) + " · " + event.partitionKey());
+            live.publish("transactions"); // push to live dashboards
         }
         Map<String, Object> body = new LinkedHashMap<>();
         body.put("outcome", result.outcome());

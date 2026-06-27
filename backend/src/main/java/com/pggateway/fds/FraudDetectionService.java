@@ -4,6 +4,8 @@ import com.pggateway.fds.scoring.RiskAssessment;
 import com.pggateway.fds.scoring.RiskScoringEngine;
 import com.pggateway.fds.scoring.RiskSignal;
 import com.pggateway.ingest.CanonicalEvent;
+import com.pggateway.live.LiveBus;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
@@ -28,15 +30,23 @@ public class FraudDetectionService {
 
     private final RiskScoringEngine engine;
     private final AlertStore alertStore;
+    private final LiveBus live; // nullable in unit tests
     private final ExecutorService worker = Executors.newSingleThreadExecutor(r -> {
         Thread t = new Thread(r, "fds-worker");
         t.setDaemon(true);
         return t;
     });
 
-    public FraudDetectionService(RiskScoringEngine engine, AlertStore alertStore) {
+    @Autowired
+    public FraudDetectionService(RiskScoringEngine engine, AlertStore alertStore, LiveBus live) {
         this.engine = engine;
         this.alertStore = alertStore;
+        this.live = live;
+    }
+
+    /** Test constructor — no live stream. */
+    public FraudDetectionService(RiskScoringEngine engine, AlertStore alertStore) {
+        this(engine, alertStore, null);
     }
 
     /** Async — used by the ingest path. Returns immediately. */
@@ -61,5 +71,6 @@ public class FraudDetectionService {
                 risk.score(), risk.band().name(), primary.code(), primary.label(),
                 risk.regulatoryTag(), reasons,
                 AlertStatus.OPEN, Instant.now()));
+        if (live != null) live.publish("alerts"); // push the new case to live dashboards
     }
 }

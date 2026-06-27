@@ -1,6 +1,7 @@
 import { Routes, Route, Navigate } from 'react-router-dom'
 import { AppShell } from './components/AppShell'
 import { TenantProvider } from './lib/tenant'
+import { useLiveStream } from './lib/useLiveStream'
 import Dashboard from './pages/Dashboard'
 import AlertDetail from './pages/AlertDetail'
 import Reconciliation from './pages/Reconciliation'
@@ -12,6 +13,7 @@ import FdsQueue from './pages/FdsQueue'
 import Audit from './pages/Audit'
 
 export default function App() {
+  useLiveStream() // SSE: push updates to every list in real time
   return (
     <TenantProvider>
       <AppShell>

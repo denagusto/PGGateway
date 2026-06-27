@@ -291,6 +291,37 @@ export async function removeWatchlist(account: string): Promise<void> {
   if (!res.ok && res.status !== 204) throw new Error(`Gagal menghapus dari daftar pantau (${res.status})`)
 }
 
+// ---------- Buku Besar (general ledger) ----------
+export interface GlTrialLine { code: string; name: string; type: string; debitMinor: number; creditMinor: number }
+export interface GlTrialBalance { lines: GlTrialLine[]; totalDebitMinor: number; totalCreditMinor: number; balanced: boolean }
+export interface GlSafeguarding {
+  customerFundsMinor: number; backingAssetsMinor: number; surplusMinor: number; feeRevenueMinor: number; coveragePct: number
+}
+export interface GlPosting { accountCode: string; accountName: string; type: string; debit: boolean; amountMinor: number }
+export interface GlJournalEntry {
+  id: string; tenantId: string; txnRef: string; occurredAt: string; description: string; postings: GlPosting[]
+}
+
+export async function fetchTrialBalance(tenant?: string): Promise<GlTrialBalance> {
+  const q = tenant && tenant !== 'all' ? `?tenant=${encodeURIComponent(tenant)}` : ''
+  const res = await fetch(`${API_BASE}/api/ledger/trial-balance${q}`)
+  if (!res.ok) throw new Error(`API ${res.status}`)
+  return (await res.json()) as GlTrialBalance
+}
+
+export async function fetchSafeguarding(tenant?: string): Promise<GlSafeguarding> {
+  const q = tenant && tenant !== 'all' ? `?tenant=${encodeURIComponent(tenant)}` : ''
+  const res = await fetch(`${API_BASE}/api/ledger/safeguarding${q}`)
+  if (!res.ok) throw new Error(`API ${res.status}`)
+  return (await res.json()) as GlSafeguarding
+}
+
+export async function fetchJournal(tenant?: string, limit = 50): Promise<GlJournalEntry[]> {
+  const res = await fetch(`${API_BASE}/api/ledger/journal?limit=${limit}${tenantParam(tenant)}`)
+  if (!res.ok) throw new Error(`API ${res.status}`)
+  return (await res.json()) as GlJournalEntry[]
+}
+
 // ---------- Developer / API keys ----------
 
 export async function fetchKeys(): Promise<ApiKey[]> {

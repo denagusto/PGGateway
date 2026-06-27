@@ -8,6 +8,7 @@ import com.pggateway.fds.FraudDetectionService;
 import com.pggateway.ingest.CanonicalEvent;
 import com.pggateway.ingest.IngestException;
 import com.pggateway.ledger.LedgerProjectionService;
+import com.pggateway.ledger.gl.GeneralLedgerService;
 import com.pggateway.security.SnapSignatureFilter;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -29,15 +30,17 @@ public class MirrorIngestController {
     private final EventStore store;
     private final FraudDetectionService fds;
     private final LedgerProjectionService ledger;
+    private final GeneralLedgerService gl;
     private final AuditService audit;
 
     public MirrorIngestController(MirrorIngestAdapter adapter, EventStore store,
                                   FraudDetectionService fds, LedgerProjectionService ledger,
-                                  AuditService audit) {
+                                  GeneralLedgerService gl, AuditService audit) {
         this.adapter = adapter;
         this.store = store;
         this.fds = fds;
         this.ledger = ledger;
+        this.gl = gl;
         this.audit = audit;
     }
 
@@ -51,6 +54,7 @@ public class MirrorIngestController {
         if (result.outcome() == AppendOutcome.APPENDED) {
             fds.submit(event);    // async — never blocks the ledger
             ledger.submit(event); // async projection
+            gl.submit(event);     // async double-entry posting to the general ledger
             audit.append("ingest.mirror", event.txnRef(),
                     (tenantId == null ? "?" : tenantId) + " · " + event.partitionKey());
         }

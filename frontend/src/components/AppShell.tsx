@@ -14,6 +14,7 @@ import { fetchTenants } from '../lib/api'
 const NAV: { to: string; label: string }[] = [
   { to: '/', label: 'Dashboard' },
   { to: '/transaksi', label: 'Transaksi' },
+  { to: '/buku-besar', label: 'Buku Besar' },
   { to: '/fds', label: 'FDS' },
   { to: '/fds/rules', label: 'Rules' },
   { to: '/rekonsiliasi', label: 'Rekonsiliasi' },

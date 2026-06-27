@@ -7,6 +7,7 @@ import Reconciliation from './pages/Reconciliation'
 import Rules from './pages/Rules'
 import Developer from './pages/Developer'
 import Ledger from './pages/Ledger'
+import BukuBesar from './pages/BukuBesar'
 import FdsQueue from './pages/FdsQueue'
 import Audit from './pages/Audit'
 
@@ -17,6 +18,7 @@ export default function App() {
         <Routes>
           <Route path="/" element={<Dashboard />} />
           <Route path="/transaksi" element={<Ledger />} />
+          <Route path="/buku-besar" element={<BukuBesar />} />
           <Route path="/fds" element={<FdsQueue />} />
           <Route path="/fds/rules" element={<Rules />} />
           <Route path="/fds/:id" element={<AlertDetail />} />

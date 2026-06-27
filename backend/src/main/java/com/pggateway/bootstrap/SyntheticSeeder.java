@@ -6,6 +6,7 @@ import com.pggateway.ingest.CanonicalEvent;
 import com.pggateway.ingest.mirror.MirrorIngestAdapter;
 import com.pggateway.ingest.mirror.MirrorPayload;
 import com.pggateway.ledger.LedgerProjectionService;
+import com.pggateway.ledger.gl.GeneralLedgerService;
 import com.pggateway.recon.ReconciliationService;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
@@ -34,17 +35,19 @@ public class SyntheticSeeder implements ApplicationRunner {
     private final EventStore store;
     private final FraudDetectionService fds;
     private final LedgerProjectionService ledger;
+    private final GeneralLedgerService gl;
     private final ReconciliationService recon;
     private final Random rnd = new Random(42);
     private int seq = 0;
 
     public SyntheticSeeder(MirrorIngestAdapter adapter, EventStore store,
                            FraudDetectionService fds, LedgerProjectionService ledger,
-                           ReconciliationService recon) {
+                           GeneralLedgerService gl, ReconciliationService recon) {
         this.adapter = adapter;
         this.store = store;
         this.fds = fds;
         this.ledger = ledger;
+        this.gl = gl;
         this.recon = recon;
     }
 
@@ -91,6 +94,7 @@ public class SyntheticSeeder implements ApplicationRunner {
         // populated even when the durable store already has the events from a previous run).
         fds.inspect(e);
         ledger.apply(e);
+        gl.apply(e); // post the balanced journal entry to the general ledger
         recon.addCounterparty(e.txnRef(), e.amountMinor());
     }
 }

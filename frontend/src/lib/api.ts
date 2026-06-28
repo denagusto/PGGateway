@@ -558,6 +558,20 @@ export async function updateReconBreak(id: string, body: { status?: string; assi
   return (await res.json()) as ReconBreak
 }
 
+// ---------- Ops / Monitoring ----------
+export interface OpsComponent { name: string; status: string; detail: string }
+export interface OpsMetrics {
+  totalEvents: number; eventsLastHour: number; openAlerts: number; sseClients: number; tenants: number
+  ingestAttempts: number; ingestErrors: number; avgMatchRatePct: number; channelMix: Record<string, number>
+}
+export interface OpsHealth { status: string; uptimeMs: number; components: OpsComponent[]; metrics: OpsMetrics }
+
+export async function fetchOpsHealth(): Promise<OpsHealth> {
+  const res = await fetch(`${API_BASE}/api/ops/health`)
+  if (!res.ok) throw new Error(`API ${res.status}`)
+  return (await res.json()) as OpsHealth
+}
+
 // ---------- Buku Besar (general ledger) ----------
 export interface GlTrialLine { code: string; name: string; type: string; debitMinor: number; creditMinor: number }
 export interface GlTrialBalance { lines: GlTrialLine[]; totalDebitMinor: number; totalCreditMinor: number; balanced: boolean }

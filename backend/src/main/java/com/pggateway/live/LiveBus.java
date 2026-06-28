@@ -35,6 +35,11 @@ public class LiveBus {
         heartbeat.scheduleAtFixedRate(this::beat, 15, 15, TimeUnit.SECONDS);
     }
 
+    /** Number of currently-connected SSE clients (for ops/health). */
+    public int size() {
+        return emitters.size();
+    }
+
     /** Open a stream for one browser. */
     public SseEmitter register() {
         SseEmitter emitter = new SseEmitter(0L); // no timeout

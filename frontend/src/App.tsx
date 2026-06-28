@@ -25,6 +25,8 @@ import FdsSimulation from './pages/FdsSimulation'
 import FdsInvestigation from './pages/FdsInvestigation'
 import FdsCopilot from './pages/FdsCopilot'
 import Audit from './pages/Audit'
+import MonitoringHealth from './pages/MonitoringHealth'
+import MonitoringThroughput from './pages/MonitoringThroughput'
 import Platform from './pages/Platform'
 
 export default function App() {
@@ -70,6 +72,8 @@ function AuthedApp() {
           <Route path="/developer/playground" element={<DeveloperPlayground />} />
           <Route path="/developer/logs" element={<DeveloperLogs />} />
           <Route path="/platform" element={<Platform />} />
+          <Route path="/monitoring" element={<MonitoringHealth />} />
+          <Route path="/monitoring/throughput" element={<MonitoringThroughput />} />
           <Route path="/audit" element={<Audit />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>

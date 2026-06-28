@@ -345,6 +345,55 @@ export async function fetchJournal(tenant?: string, limit = 50): Promise<GlJourn
   return (await res.json()) as GlJournalEntry[]
 }
 
+// ---------- Platform admin (super-admin only) ----------
+export interface AdminTenant { id: string; name: string; status: string; env: string; createdAt: string }
+export interface AdminUser { username: string; displayName: string; role: string; tenantId: string | null }
+
+export async function fetchAdminTenants(): Promise<AdminTenant[]> {
+  const res = await fetch(`${API_BASE}/api/admin/tenants`)
+  if (!res.ok) throw new Error(`API ${res.status}`)
+  return (await res.json()) as AdminTenant[]
+}
+
+export async function registerTenant(body: { id: string; name: string; env: string }): Promise<AdminTenant> {
+  const res = await fetch(`${API_BASE}/api/admin/tenants`, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body),
+  })
+  if (!res.ok) throw new Error(await errorMessage(res, `Gagal registrasi tenant (${res.status})`))
+  return (await res.json()) as AdminTenant
+}
+
+export async function setTenantStatus(id: string, status: string): Promise<void> {
+  const res = await fetch(`${API_BASE}/api/admin/tenants/${encodeURIComponent(id)}/status`, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ status }),
+  })
+  if (!res.ok) throw new Error(`API ${res.status}`)
+}
+
+export async function fetchAdminUsers(): Promise<AdminUser[]> {
+  const res = await fetch(`${API_BASE}/api/admin/users`)
+  if (!res.ok) throw new Error(`API ${res.status}`)
+  return (await res.json()) as AdminUser[]
+}
+
+export async function createAdminUser(body: {
+  username: string; password: string; displayName: string; role: string; tenant: string | null
+}): Promise<AdminUser> {
+  const res = await fetch(`${API_BASE}/api/admin/users`, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body),
+  })
+  if (!res.ok) throw new Error(await errorMessage(res, `Gagal membuat user (${res.status})`))
+  return (await res.json()) as AdminUser
+}
+
+export async function impersonateTenant(tenantId: string): Promise<{ token: string; user: AdminUser }> {
+  const res = await fetch(`${API_BASE}/api/admin/impersonate`, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ tenantId }),
+  })
+  if (!res.ok) throw new Error(await errorMessage(res, `Gagal impersonate (${res.status})`))
+  return (await res.json()) as { token: string; user: AdminUser }
+}
+
 // ---------- Developer / API keys ----------
 
 export async function fetchKeys(): Promise<ApiKey[]> {

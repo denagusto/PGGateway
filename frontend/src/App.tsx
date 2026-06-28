@@ -1,5 +1,6 @@
 import { Routes, Route, Navigate } from 'react-router-dom'
 import { AppShell } from './components/AppShell'
+import { ToastProvider } from './components/ui/Toast'
 import { TenantProvider } from './lib/tenant'
 import { AuthProvider, useAuth } from './lib/auth'
 import { useLiveStream } from './lib/useLiveStream'
@@ -13,12 +14,15 @@ import Ledger from './pages/Ledger'
 import BukuBesar from './pages/BukuBesar'
 import FdsQueue from './pages/FdsQueue'
 import Audit from './pages/Audit'
+import Platform from './pages/Platform'
 
 export default function App() {
   return (
-    <AuthProvider>
-      <Gate />
-    </AuthProvider>
+    <ToastProvider>
+      <AuthProvider>
+        <Gate />
+      </AuthProvider>
+    </ToastProvider>
   )
 }
 
@@ -43,6 +47,7 @@ function AuthedApp() {
           <Route path="/fds/:id" element={<AlertDetail />} />
           <Route path="/rekonsiliasi" element={<Reconciliation />} />
           <Route path="/developer" element={<Developer />} />
+          <Route path="/platform" element={<Platform />} />
           <Route path="/audit" element={<Audit />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>

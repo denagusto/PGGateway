@@ -14,7 +14,7 @@ const ROLE_LABEL: Record<string, string> = { ADMIN: 'Platform Admin', PJP: 'Oper
  * fixed navy top bar, brand, nav links (Bahasa Indonesia), read-only tenant chip.
  */
 
-const NAV: { to: string; label: string }[] = [
+const NAV: { to: string; label: string; admin?: boolean }[] = [
   { to: '/', label: 'Dashboard' },
   { to: '/transaksi', label: 'Transaksi' },
   { to: '/buku-besar', label: 'Buku Besar' },
@@ -23,9 +23,12 @@ const NAV: { to: string; label: string }[] = [
   { to: '/rekonsiliasi', label: 'Rekonsiliasi' },
   { to: '/developer', label: 'Developer' },
   { to: '/audit', label: 'Audit' },
+  { to: '/platform', label: 'Platform', admin: true },
 ]
 
 function TopBar() {
+  const { user } = useAuth()
+  const nav = NAV.filter((n) => !n.admin || user?.role === 'ADMIN')
   return (
     <header className="fixed inset-x-0 top-0 z-40 h-14 bg-gradient-to-r from-primary-900 via-primary-700 to-primary text-white shadow-[0_1px_3px_rgba(16,24,40,0.18)]">
       <div className="flex h-full w-full items-center gap-7 px-6">
@@ -37,7 +40,7 @@ function TopBar() {
         </div>
 
         <nav className="flex items-center gap-0.5" aria-label="Navigasi utama">
-          {NAV.map((item) => (
+          {nav.map((item) => (
             <NavLink
               key={item.to}
               to={item.to}
@@ -131,10 +134,19 @@ function UserMenu() {
 }
 
 export function AppShell({ children }: { children: ReactNode }) {
+  const { impersonating, user, stopImpersonate } = useAuth()
   return (
     <div className="min-h-screen bg-bg">
       <TopBar />
-      <main className="w-full px-6 pb-12 pt-[76px]">{children}</main>
+      {impersonating ? (
+        <div className="fixed inset-x-0 top-14 z-30 flex items-center justify-center gap-3 bg-warning px-4 py-1.5 text-small font-semibold text-white">
+          <span>Mode dukungan — Anda login sebagai tenant {user?.tenantId}</span>
+          <button type="button" onClick={stopImpersonate} className="rounded bg-white/20 px-2 py-0.5 hover:bg-white/30">
+            Keluar dari mode ini
+          </button>
+        </div>
+      ) : null}
+      <main className={'w-full px-6 pb-12 ' + (impersonating ? 'pt-[104px]' : 'pt-[76px]')}>{children}</main>
     </div>
   )
 }

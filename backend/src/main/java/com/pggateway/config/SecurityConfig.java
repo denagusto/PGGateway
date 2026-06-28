@@ -50,6 +50,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/stream").permitAll()      // change-signals only, no data
                         .requestMatchers("/api/dev/snap-guide").permitAll()
                         .requestMatchers("/swagger-ui/**", "/swagger-ui.html", "/v3/api-docs/**").permitAll()
+                        .requestMatchers("/api/admin/**").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.POST, "/api/dev/keys").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.DELETE, "/api/dev/keys/**").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.POST, "/api/rules", "/api/fds/watchlist").hasAnyRole("ADMIN", "ANALYST")

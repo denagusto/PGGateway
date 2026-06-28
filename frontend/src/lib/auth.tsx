@@ -11,16 +11,24 @@ export interface User {
 interface AuthCtx {
   user: User | null
   ready: boolean
+  impersonating: boolean
   login: (username: string, password: string) => Promise<void>
   logout: () => void
+  impersonate: (token: string, user: User) => void
+  stopImpersonate: () => void
 }
 
-const Ctx = createContext<AuthCtx>({ user: null, ready: false, login: async () => {}, logout: () => {} })
+const Ctx = createContext<AuthCtx>({
+  user: null, ready: false, impersonating: false,
+  login: async () => {}, logout: () => {}, impersonate: () => {}, stopImpersonate: () => {},
+})
 const TOKEN_KEY = 'pg.token'
+const BACKUP_KEY = 'pg.admin_backup'
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
   const [ready, setReady] = useState(false)
+  const [impersonating, setImpersonating] = useState(() => !!localStorage.getItem(BACKUP_KEY))
 
   useEffect(() => {
     // a 401 anywhere drops the session back to the login screen
@@ -60,10 +68,39 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const logout = () => {
     setAuthToken(null)
     localStorage.removeItem(TOKEN_KEY)
+    localStorage.removeItem(BACKUP_KEY)
+    setImpersonating(false)
     setUser(null)
   }
 
-  return <Ctx.Provider value={{ user, ready, login, logout }}>{children}</Ctx.Provider>
+  // Super-admin "login as" a tenant — back up the admin session so it can be restored.
+  const impersonate = (token: string, asUser: User) => {
+    const adminToken = localStorage.getItem(TOKEN_KEY)
+    if (adminToken && user) {
+      localStorage.setItem(BACKUP_KEY, JSON.stringify({ token: adminToken, user }))
+    }
+    localStorage.setItem(TOKEN_KEY, token)
+    setAuthToken(token)
+    setUser(asUser)
+    setImpersonating(true)
+  }
+
+  const stopImpersonate = () => {
+    const raw = localStorage.getItem(BACKUP_KEY)
+    if (!raw) return
+    const { token, user: adminUser } = JSON.parse(raw) as { token: string; user: User }
+    localStorage.setItem(TOKEN_KEY, token)
+    localStorage.removeItem(BACKUP_KEY)
+    setAuthToken(token)
+    setUser(adminUser)
+    setImpersonating(false)
+  }
+
+  return (
+    <Ctx.Provider value={{ user, ready, impersonating, login, logout, impersonate, stopImpersonate }}>
+      {children}
+    </Ctx.Provider>
+  )
 }
 
 export function useAuth(): AuthCtx {

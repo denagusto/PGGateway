@@ -1,7 +1,7 @@
 import { useState, type ReactNode } from 'react'
 import { NavLink, useLocation } from 'react-router-dom'
 import {
-  ChevronDown, ShieldCheck, LogOut, ShieldAlert, SlidersHorizontal, Building2, Menu, BarChart3,
+  ChevronDown, ShieldCheck, LogOut, ShieldAlert, SlidersHorizontal, Building2, Menu, BarChart3, Layers,
   PanelLeftClose, type LucideIcon,
 } from 'lucide-react'
 import { useQuery } from '@tanstack/react-query'
@@ -24,6 +24,7 @@ const MODULES: Module[] = [
     sub: [
       { to: '/fds', label: 'Antrian Alert', icon: ShieldAlert, end: true },
       { to: '/fds/analytics', label: 'Analitik', icon: BarChart3, fraud: true },
+      { to: '/fds/detectors', label: 'Detektor & Scoring', icon: Layers, fraud: true },
       { to: '/fds/rules', label: 'Rules & Daftar Pantau', icon: SlidersHorizontal, fraud: true },
     ],
   },

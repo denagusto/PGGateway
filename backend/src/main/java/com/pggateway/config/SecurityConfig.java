@@ -63,6 +63,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/fds/scoring-config", "/api/fds/scoring-config/**").hasAnyRole("ADMIN", "ANALYST")
                         .requestMatchers("/api/fds/lists", "/api/fds/lists/**").hasAnyRole("ADMIN", "ANALYST")
                         .requestMatchers("/api/fds/entity/**").hasAnyRole("ADMIN", "ANALYST")
+                        .requestMatchers("/api/fds/typologies", "/api/fds/copilot/**").hasAnyRole("ADMIN", "ANALYST")
                         .anyRequest().authenticated())
                 // 401 for unauthenticated (frontend -> show login), 403 stays for authenticated-but-forbidden
                 .exceptionHandling(e -> e.authenticationEntryPoint(

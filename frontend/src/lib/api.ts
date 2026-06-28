@@ -393,6 +393,31 @@ export async function removeListEntry(id: string): Promise<void> {
   if (!res.ok && res.status !== 204) throw new Error(`Gagal menghapus entri (${res.status})`)
 }
 
+// ---------- FDS Copilot + Typology library (on-prem AI/RAG — ADMIN/ANALYST) ----------
+export interface Typology {
+  id: string; code: string; name: string; category: string; description: string
+  indicators: string[]; regulatoryMapping: string; recommendedAction: string
+}
+export interface CopilotMatch {
+  code: string; name: string; category: string; score: number
+  matchedIndicators: string[]; regulatoryMapping: string; recommendedAction: string
+}
+export interface CopilotResult {
+  provider: string; summary: string; explanation: string; reportDraft: string; matchedTypologies: CopilotMatch[]
+}
+
+export async function fetchTypologies(): Promise<Typology[]> {
+  const res = await fetch(`${API_BASE}/api/fds/typologies`)
+  if (!res.ok) throw new Error(`API ${res.status}`)
+  return (await res.json()) as Typology[]
+}
+
+export async function generateCopilot(alertId: string): Promise<CopilotResult> {
+  const res = await fetch(`${API_BASE}/api/fds/copilot/${encodeURIComponent(alertId)}`, { method: 'POST' })
+  if (!res.ok) throw new Error(await errorMessage(res, `Copilot gagal (${res.status})`))
+  return (await res.json()) as CopilotResult
+}
+
 // ---------- FDS Entity 360 / investigation (ADMIN/ANALYST) ----------
 export interface EntityTxn { txnRef: string; channel: string; amountMinor: number; direction: 'IN' | 'OUT'; counterparty: string; occurredAt: string }
 export interface EntityAlert { alertId: string; score: number; band: string; rule: string; report: string; status: string; createdAt: string }

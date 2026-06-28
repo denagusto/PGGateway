@@ -2,10 +2,10 @@ package com.pggateway.fds;
 
 import com.pggateway.fds.engine.FeatureExtractor;
 import com.pggateway.fds.engine.RuleEngine;
-import com.pggateway.fds.rules.RuleStore;
+import com.pggateway.fds.rules.InMemoryRuleStore;
 import com.pggateway.fds.scoring.Detector;
 import com.pggateway.fds.scoring.RiskScoringEngine;
-import com.pggateway.fds.scoring.WatchlistStore;
+import com.pggateway.fds.scoring.InMemoryWatchlistStore;
 import com.pggateway.fds.scoring.detectors.BehavioralAnomalyDetector;
 import com.pggateway.fds.scoring.detectors.CounterpartyDetector;
 import com.pggateway.fds.scoring.detectors.PatternDetector;
@@ -34,12 +34,12 @@ class FraudDetectionServiceTest {
 
     private FraudDetectionService service(AlertStore alerts) {
         List<Detector> detectors = List.of(
-                new RegulatoryRuleDetector(new RuleEngine(new RuleStore())),
+                new RegulatoryRuleDetector(new RuleEngine(new InMemoryRuleStore())),
                 new BehavioralAnomalyDetector(),
                 new VelocityBurstDetector(),
                 new CounterpartyDetector(),
                 new PatternDetector(),
-                new WatchlistDetector(new WatchlistStore()));
+                new WatchlistDetector(new InMemoryWatchlistStore()));
         return new FraudDetectionService(new RiskScoringEngine(new FeatureExtractor(), detectors), alerts);
     }
 

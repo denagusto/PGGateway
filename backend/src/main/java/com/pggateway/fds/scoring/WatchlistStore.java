@@ -1,39 +1,20 @@
 package com.pggateway.fds.scoring;
 
-import org.springframework.stereotype.Component;
-
 import java.util.List;
-import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * Dynamic blocklist of accounts (mules, sanctioned parties, known fraud). Editable at runtime —
- * a compliance officer adds/removes entries without a redeploy, the way a bank maintains its
- * watchlist / sanctions screening list. In-memory now; later CockroachDB + an upstream sanctions
- * feed (OFAC/UN/Bank Indonesia DTTOT).
+ * Dynamic blocklist of accounts (mules, sanctioned parties, DTTOT). Editable at runtime — a
+ * compliance officer adds/removes entries without a redeploy. Two implementations swap by profile:
+ * an in-memory stand-in (default) and a durable CockroachDB store (the 'cockroach' profile), so
+ * watchlist edits survive a restart.
  */
-@Component
-public class WatchlistStore {
+public interface WatchlistStore {
 
-    private final Set<String> blocked = ConcurrentHashMap.newKeySet();
+    boolean isBlocked(String account);
 
-    public WatchlistStore() {
-        blocked.add("ACC-BLOCK"); // demo seed so the watchlist layer is observable
-    }
+    boolean add(String account);
 
-    public boolean isBlocked(String account) {
-        return account != null && blocked.contains(account);
-    }
+    boolean remove(String account);
 
-    public boolean add(String account) {
-        return account != null && !account.isBlank() && blocked.add(account);
-    }
-
-    public boolean remove(String account) {
-        return blocked.remove(account);
-    }
-
-    public List<String> all() {
-        return List.copyOf(blocked);
-    }
+    List<String> all();
 }

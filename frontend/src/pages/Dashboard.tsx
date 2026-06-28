@@ -12,7 +12,9 @@ function kpiIcon(label: string): LucideIcon {
 import { useQuery, useMutation, useQueryClient, type UseQueryResult } from '@tanstack/react-query'
 import { PageHeader } from '../components/PageHeader'
 import { StatCard } from '../components/ui/StatCard'
-import { Card, CardHeader } from '../components/ui/Card'
+import { Card, CardHeader, CardBody } from '../components/ui/Card'
+import { Donut, BarList } from '../components/ui/Charts'
+import { useToast } from '../components/ui/Toast'
 import { Button } from '../components/ui/Button'
 import { Skeleton } from '../components/ui/Skeleton'
 import { EmptyState, ErrorState } from '../components/StateViews'
@@ -73,14 +75,32 @@ export default function Dashboard() {
     gcTime: 0,
   })
 
+  const toast = useToast()
   const sendTest = useMutation({
     mutationFn: postRandomMirror,
     onSuccess: () => {
+      toast({ tone: 'success', title: 'Transaksi uji terkirim', description: 'Feed & risiko diperbarui real-time.' })
       qc.invalidateQueries({ queryKey: ['transactions'] })
       qc.invalidateQueries({ queryKey: ['alerts'] })
       qc.invalidateQueries({ queryKey: ['stats'] })
     },
+    onError: (e) => toast({ tone: 'error', title: 'Gagal mengirim', description: (e as Error).message }),
   })
+
+  const alertsForChart = alertsQuery.data ?? []
+  const bandSegments = [
+    { label: 'Kritis', color: '#dc2626', value: alertsForChart.filter((a) => a.score >= 80).length },
+    { label: 'Tinggi', color: '#d97706', value: alertsForChart.filter((a) => a.score >= 60 && a.score < 80).length },
+    { label: 'Sedang', color: '#ca8a04', value: alertsForChart.filter((a) => a.score >= 40 && a.score < 60).length },
+    { label: 'Rendah', color: '#6b7185', value: alertsForChart.filter((a) => a.score < 40).length },
+  ].filter((s) => s.value > 0)
+
+  const txnsForChart = txnQuery.data ?? []
+  const byChannel: Record<string, number> = {}
+  txnsForChart.forEach((t) => { byChannel[t.channel] = (byChannel[t.channel] ?? 0) + t.jumlah })
+  const channelBars = Object.entries(byChannel)
+    .map(([label, value]) => ({ label, value, display: formatRupiah(value) }))
+    .sort((a, b) => b.value - a.value)
 
   return (
     <>
@@ -111,6 +131,29 @@ export default function Dashboard() {
                 icon={kpiIcon(kpi.label)}
               />
             ))}
+      </div>
+
+      <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-3">
+        <Card>
+          <CardHeader title="Distribusi band risiko" />
+          <CardBody>
+            {bandSegments.length ? (
+              <Donut segments={bandSegments} />
+            ) : (
+              <p className="py-6 text-center text-small text-muted">Tidak ada alert terbuka.</p>
+            )}
+          </CardBody>
+        </Card>
+        <Card className="lg:col-span-2">
+          <CardHeader title="Volume per channel" />
+          <CardBody>
+            {channelBars.length ? (
+              <BarList items={channelBars} />
+            ) : (
+              <p className="py-6 text-center text-small text-muted">Belum ada transaksi.</p>
+            )}
+          </CardBody>
+        </Card>
       </div>
 
       <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-3">

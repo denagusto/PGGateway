@@ -513,6 +513,51 @@ export async function updateScoringConfig(body: ScoringConfigUpdate): Promise<Sc
   return (await res.json()) as ScoringConfigSnapshot
 }
 
+// ---------- Reconciliation workspace (runs + breaks + workflow) ----------
+export interface ReconRun {
+  id: string; source: string; cycleDate: string; status: string
+  total: number; matched: number; breakCount: number; matchRatePct: number
+  valueReconciledMinor: number; valueAtRiskMinor: number; startedAt: string; finishedAt: string
+}
+export interface ReconBreak {
+  id: string; runId: string; source: string; txnRef: string; category: string
+  amountLedgerMinor: number | null; amountSourceMinor: number | null; diffMinor: number | null
+  status: string; assignee: string; ageHours: number; note: string; createdAt: string
+}
+export interface ReconWorkspaceSummary {
+  avgMatchRatePct: number; openBreaks: number; valueAtRiskMinor: number
+  aging0to1d: number; aging1to3d: number; aging3to7d: number; agingOver7d: number
+  byCategory: Record<string, number>
+}
+
+export async function fetchReconRuns(): Promise<ReconRun[]> {
+  const res = await fetch(`${API_BASE}/api/recon/runs`)
+  if (!res.ok) throw new Error(`API ${res.status}`)
+  return (await res.json()) as ReconRun[]
+}
+export async function fetchReconWorkspaceSummary(): Promise<ReconWorkspaceSummary> {
+  const res = await fetch(`${API_BASE}/api/recon/summary`)
+  if (!res.ok) throw new Error(`API ${res.status}`)
+  return (await res.json()) as ReconWorkspaceSummary
+}
+export async function fetchReconBreaks(f: { status?: string; category?: string; source?: string; search?: string }): Promise<ReconBreak[]> {
+  const p = new URLSearchParams()
+  if (f.status && f.status !== 'all') p.set('status', f.status)
+  if (f.category && f.category !== 'all') p.set('category', f.category)
+  if (f.source && f.source !== 'all') p.set('source', f.source)
+  if (f.search) p.set('search', f.search)
+  const res = await fetch(`${API_BASE}/api/recon/breaks?${p.toString()}`)
+  if (!res.ok) throw new Error(`API ${res.status}`)
+  return (await res.json()) as ReconBreak[]
+}
+export async function updateReconBreak(id: string, body: { status?: string; assignee?: string; note?: string }): Promise<ReconBreak> {
+  const res = await fetch(`${API_BASE}/api/recon/breaks/${encodeURIComponent(id)}`, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body),
+  })
+  if (!res.ok) throw new Error(await errorMessage(res, `Gagal memperbarui (${res.status})`))
+  return (await res.json()) as ReconBreak
+}
+
 // ---------- Buku Besar (general ledger) ----------
 export interface GlTrialLine { code: string; name: string; type: string; debitMinor: number; creditMinor: number }
 export interface GlTrialBalance { lines: GlTrialLine[]; totalDebitMinor: number; totalCreditMinor: number; balanced: boolean }

@@ -3,7 +3,7 @@ import { NavLink, useLocation } from 'react-router-dom'
 import {
   ChevronDown, ShieldCheck, LogOut, ShieldAlert, SlidersHorizontal, Building2, Menu, BarChart3, Layers,
   BrainCircuit, ListChecks, FlaskConical, UserSearch, Sparkles, KeyRound, Wand2, Activity,
-  PanelLeftClose, type LucideIcon,
+  GitCompareArrows, AlertTriangle, PanelLeftClose, type LucideIcon,
 } from 'lucide-react'
 import { useQuery } from '@tanstack/react-query'
 import { cn } from '../lib/cn'
@@ -34,7 +34,13 @@ const MODULES: Module[] = [
       { to: '/fds/rules', label: 'Rules & Daftar Pantau', icon: SlidersHorizontal, fraud: true },
     ],
   },
-  { label: 'Rekonsiliasi', base: '/rekonsiliasi', to: '/rekonsiliasi' },
+  {
+    label: 'Rekonsiliasi', base: '/rekonsiliasi',
+    sub: [
+      { to: '/rekonsiliasi', label: 'Runs & Ringkasan', icon: GitCompareArrows, end: true },
+      { to: '/rekonsiliasi/exceptions', label: 'Exceptions', icon: AlertTriangle },
+    ],
+  },
   {
     label: 'Developer', base: '/developer',
     sub: [

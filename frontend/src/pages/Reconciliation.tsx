@@ -1,110 +1,88 @@
-import { ShieldCheck, CheckCircle2, GitCompareArrows } from 'lucide-react'
-import { useQuery, useMutation, useQueryClient, type UseQueryResult } from '@tanstack/react-query'
+import { GitCompareArrows, AlertTriangle, ShieldCheck, Banknote, Clock } from 'lucide-react'
+import { useQuery } from '@tanstack/react-query'
+import { Link } from 'react-router-dom'
 import { PageHeader } from '../components/PageHeader'
-import { Card, CardHeader } from '../components/ui/Card'
+import { Card, CardHeader, CardBody } from '../components/ui/Card'
 import { StatCard } from '../components/ui/StatCard'
 import { Badge } from '../components/ui/Badge'
-import { Button } from '../components/ui/Button'
 import { Skeleton } from '../components/ui/Skeleton'
-import { EmptyState, ErrorState } from '../components/StateViews'
+import { ErrorState } from '../components/StateViews'
 import { Table, TBody, THead, TH, TR, TD } from '../components/ui/Table'
-import { formatRupiah, formatInt } from '../lib/format'
-import { fetchMismatches, fetchReconSummary, resolveMismatch } from '../lib/api'
-import type { ReconMismatch, ReconSummary } from '../data/types'
-
-function rupiahOrDash(minor: number | null): string {
-  return minor == null ? '— tidak ada —' : formatRupiah(minor / 100)
-}
+import { formatRupiahCompact, formatInt } from '../lib/format'
+import { fetchReconRuns, fetchReconWorkspaceSummary, type ReconRun, type ReconWorkspaceSummary } from '../lib/api'
 
 export default function Reconciliation() {
-  const qc = useQueryClient()
-  const summary = useQuery<ReconSummary, Error>({ queryKey: ['recon-summary'], queryFn: fetchReconSummary })
-  const mismatches = useQuery<ReconMismatch[], Error>({ queryKey: ['recon-mismatches'], queryFn: fetchMismatches })
-  const resolve = useMutation({
-    mutationFn: (ref: string) => resolveMismatch(ref),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['recon-mismatches'] })
-      qc.invalidateQueries({ queryKey: ['recon-summary'] })
-    },
-  })
+  const summary = useQuery<ReconWorkspaceSummary, Error>({ queryKey: ['recon-ws-summary'], queryFn: fetchReconWorkspaceSummary })
+  const runs = useQuery<ReconRun[], Error>({ queryKey: ['recon-runs'], queryFn: fetchReconRuns })
 
   return (
     <>
-      <PageHeader icon={GitCompareArrows} title="Rekonsiliasi" subtitle="Pencocokan 2-arah: ledger PGGateway vs counterparty" />
+      <PageHeader icon={GitCompareArrows} title="Rekonsiliasi — Runs & Ringkasan"
+        subtitle="Pencocokan ledger PGGateway vs sumber settlement, per siklus" />
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-        {summary.isPending || summary.isError ? (
-          Array.from({ length: 3 }).map((_, i) => (
-            <Card key={i} className="p-4"><Skeleton className="h-3 w-24" /><Skeleton className="mt-2 h-7 w-20" /></Card>
-          ))
-        ) : (
+      <div className="mb-6 grid grid-cols-2 gap-4 lg:grid-cols-4">
+        {summary.isPending || summary.isError ? Array.from({ length: 4 }).map((_, i) => <Card key={i} className="p-5"><Skeleton className="h-16 w-full" /></Card>) : (
           <>
-            <StatCard label="Cocok" value={formatInt(summary.data.matched)} sub="transaksi termatch" subTone="success" valueTone="success" />
-            <StatCard label="Mismatch terbuka" value={formatInt(summary.data.mismatchOpen)} sub="perlu ditinjau" subTone="warning" valueTone="warning" />
-            <StatCard label="Selisih nominal" value={formatRupiah(summary.data.diffMinorTotal / 100)} sub="akumulasi" subTone="danger" valueTone="danger" />
+            <StatCard label="Match rate (rata2)" value={`${summary.data.avgMatchRatePct.toFixed(2)}%`} sub="lintas sumber" icon={ShieldCheck} valueTone={summary.data.avgMatchRatePct >= 99 ? 'success' : 'ink'} />
+            <StatCard label="Breaks terbuka" value={formatInt(summary.data.openBreaks)} sub="perlu ditangani" subTone={summary.data.openBreaks ? 'warning' : 'success'} valueTone={summary.data.openBreaks ? 'warning' : 'success'} icon={AlertTriangle} />
+            <StatCard label="Value at risk" value={formatRupiahCompact(summary.data.valueAtRiskMinor / 100)} sub="nilai belum terekonsiliasi" subTone="danger" valueTone="danger" icon={Banknote} />
+            <StatCard label="Break tertua" value={`>7h: ${summary.data.agingOver7d}`} sub={`${summary.data.aging3to7d} di 3–7h`} subTone={summary.data.agingOver7d ? 'danger' : 'muted'} icon={Clock} />
           </>
         )}
       </div>
 
-      <Card className="mt-6">
-        <CardHeader title="Mismatch" />
-        <MismatchTable query={mismatches} onResolve={(ref) => resolve.mutate(ref)} resolving={resolve.isPending} />
+      {/* Aging breakdown */}
+      {summary.data ? (
+        <Card className="mb-6">
+          <CardHeader title="Aging breaks terbuka" />
+          <CardBody>
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+              <Aging label="0–1 hari" value={summary.data.aging0to1d} tone="success" />
+              <Aging label="1–3 hari" value={summary.data.aging1to3d} tone="ink" />
+              <Aging label="3–7 hari" value={summary.data.aging3to7d} tone="warning" />
+              <Aging label="> 7 hari" value={summary.data.agingOver7d} tone="danger" />
+            </div>
+          </CardBody>
+        </Card>
+      ) : null}
+
+      <Card>
+        <CardHeader title="Recon runs (siklus 2026-06-27)" action={<Link to="/rekonsiliasi/exceptions" className="text-small font-semibold text-primary hover:underline">Lihat exceptions →</Link>} />
+        <CardBody>
+          {runs.isError ? <ErrorState onRetry={() => runs.refetch()} /> : runs.isPending ? <Skeleton className="h-40 w-full" /> : (
+            <div className="overflow-x-auto">
+              <Table>
+                <THead>
+                  <TR><TH>Sumber</TH><TH>Status</TH><TH align="right">Match rate</TH><TH align="right">Cocok / total</TH><TH align="right">Breaks</TH><TH align="right">Terekonsiliasi</TH><TH align="right">At risk</TH></TR>
+                </THead>
+                <TBody>
+                  {runs.data.map((r) => (
+                    <TR key={r.id}>
+                      <TD className="font-medium text-ink">{r.source}</TD>
+                      <TD><Badge tone={r.status === 'COMPLETED' ? 'success' : 'warning'}>{r.status}</Badge></TD>
+                      <TD numeric align="right" className={r.matchRatePct >= 99.5 ? 'text-success' : 'text-ink'}>{r.matchRatePct.toFixed(2)}%</TD>
+                      <TD numeric align="right" className="text-muted">{formatInt(r.matched)} / {formatInt(r.total)}</TD>
+                      <TD numeric align="right" className={r.breakCount ? 'text-warning' : 'text-muted'}>{formatInt(r.breakCount)}</TD>
+                      <TD numeric align="right">{formatRupiahCompact(r.valueReconciledMinor / 100)}</TD>
+                      <TD numeric align="right" className={r.valueAtRiskMinor ? 'text-danger' : 'text-muted'}>{formatRupiahCompact(r.valueAtRiskMinor / 100)}</TD>
+                    </TR>
+                  ))}
+                </TBody>
+              </Table>
+            </div>
+          )}
+        </CardBody>
       </Card>
     </>
   )
 }
 
-function MismatchTable({
-  query,
-  onResolve,
-  resolving,
-}: {
-  query: UseQueryResult<ReconMismatch[], Error>
-  onResolve: (ref: string) => void
-  resolving: boolean
-}) {
-  if (query.isPending) {
-    return (
-      <div className="space-y-2 p-4">
-        {Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-9 w-full" />)}
-      </div>
-    )
-  }
-  if (query.isError) return <ErrorState onRetry={() => query.refetch()} />
-  if (query.data.length === 0) {
-    return (
-      <EmptyState icon={ShieldCheck} title="Semua transaksi cocok" description="Tidak ada mismatch terbuka. Ledger dan counterparty selaras." />
-    )
-  }
+function Aging({ label, value, tone }: { label: string; value: number; tone: 'success' | 'ink' | 'warning' | 'danger' }) {
+  const c = { success: 'text-success', ink: 'text-ink', warning: 'text-warning', danger: 'text-danger' }[tone]
   return (
-    <Table>
-      <THead>
-        <TR>
-          <TH>txnRef</TH><TH>Jenis</TH>
-          <TH align="right">Sisi PJP</TH><TH align="right">Sisi counterparty</TH><TH align="right">Selisih</TH>
-          <TH></TH>
-        </TR>
-      </THead>
-      <TBody>
-        {query.data.map((m) => (
-          <TR key={m.id} className={m.type === 'selisih_nominal' ? 'bg-warning-bg' : ''}>
-            <TD numeric>{m.txnRef}</TD>
-            <TD>
-              {m.type === 'selisih_nominal'
-                ? <Badge tone="danger">selisih nominal</Badge>
-                : <Badge tone="warning">satu sisi</Badge>}
-            </TD>
-            <TD numeric align="right" className={m.amountPjpMinor == null ? 'text-muted' : ''}>{rupiahOrDash(m.amountPjpMinor)}</TD>
-            <TD numeric align="right" className={m.amountCounterpartyMinor == null ? 'text-muted' : ''}>{rupiahOrDash(m.amountCounterpartyMinor)}</TD>
-            <TD numeric align="right" className="text-danger">{m.diffMinor == null ? '—' : formatRupiah(Math.abs(m.diffMinor) / 100)}</TD>
-            <TD>
-              <Button variant="secondary" className="h-8 gap-1 px-2 text-small" disabled={resolving} onClick={() => onResolve(m.txnRef)}>
-                <CheckCircle2 aria-hidden="true" className="h-3.5 w-3.5" /> Selesaikan
-              </Button>
-            </TD>
-          </TR>
-        ))}
-      </TBody>
-    </Table>
+    <div className="rounded-md border border-line bg-bg p-3 text-center">
+      <div className={`text-display font-bold ${c}`}>{value}</div>
+      <div className="mt-0.5 text-micro uppercase tracking-wide text-muted">{label}</div>
+    </div>
   )
 }

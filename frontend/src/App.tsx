@@ -8,6 +8,7 @@ import Login from './pages/Login'
 import Dashboard from './pages/Dashboard'
 import AlertDetail from './pages/AlertDetail'
 import Reconciliation from './pages/Reconciliation'
+import ReconciliationExceptions from './pages/ReconciliationExceptions'
 import Rules from './pages/Rules'
 import Developer from './pages/Developer'
 import DeveloperSandbox from './pages/DeveloperSandbox'
@@ -63,6 +64,7 @@ function AuthedApp() {
           <Route path="/fds/rules" element={<Rules />} />
           <Route path="/fds/:id" element={<AlertDetail />} />
           <Route path="/rekonsiliasi" element={<Reconciliation />} />
+          <Route path="/rekonsiliasi/exceptions" element={<ReconciliationExceptions />} />
           <Route path="/developer" element={<Developer />} />
           <Route path="/developer/sandbox" element={<DeveloperSandbox />} />
           <Route path="/developer/playground" element={<DeveloperPlayground />} />

@@ -2,7 +2,7 @@ import { useState, type ReactNode } from 'react'
 import { NavLink } from 'react-router-dom'
 import {
   ChevronDown, ShieldCheck, LogOut, LayoutDashboard, ArrowLeftRight, BookOpen,
-  ShieldAlert, SlidersHorizontal, GitCompareArrows, Code2, ScrollText, Building2, Menu,
+  ShieldAlert, SlidersHorizontal, GitCompareArrows, Code2, ScrollText, Building2, Menu, BarChart3,
   type LucideIcon,
 } from 'lucide-react'
 import { useQuery } from '@tanstack/react-query'
@@ -25,6 +25,7 @@ const NAV: NavNode[] = [
     group: 'Fraud Detection',
     items: [
       { to: '/fds', label: 'Antrian Alert', icon: ShieldAlert, end: true },
+      { to: '/fds/analytics', label: 'Analitik', icon: BarChart3, fraud: true },
       { to: '/fds/rules', label: 'Rules & Daftar Pantau', icon: SlidersHorizontal, fraud: true },
     ],
   },

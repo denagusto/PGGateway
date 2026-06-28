@@ -13,6 +13,7 @@ import Developer from './pages/Developer'
 import Ledger from './pages/Ledger'
 import BukuBesar from './pages/BukuBesar'
 import FdsQueue from './pages/FdsQueue'
+import FdsAnalytics from './pages/FdsAnalytics'
 import Audit from './pages/Audit'
 import Platform from './pages/Platform'
 
@@ -43,6 +44,7 @@ function AuthedApp() {
           <Route path="/transaksi" element={<Ledger />} />
           <Route path="/buku-besar" element={<BukuBesar />} />
           <Route path="/fds" element={<FdsQueue />} />
+          <Route path="/fds/analytics" element={<FdsAnalytics />} />
           <Route path="/fds/rules" element={<Rules />} />
           <Route path="/fds/:id" element={<AlertDetail />} />
           <Route path="/rekonsiliasi" element={<Reconciliation />} />

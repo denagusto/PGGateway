@@ -60,6 +60,7 @@ public class SecurityConfig {
                         // The ML model, its weights, metrics and training controls are part of the
                         // confidential detection stack — risk/fraud team only.
                         .requestMatchers("/api/fds/model", "/api/fds/model/**").hasAnyRole("ADMIN", "ANALYST")
+                        .requestMatchers("/api/fds/scoring-config", "/api/fds/scoring-config/**").hasAnyRole("ADMIN", "ANALYST")
                         .anyRequest().authenticated())
                 // 401 for unauthenticated (frontend -> show login), 403 stays for authenticated-but-forbidden
                 .exceptionHandling(e -> e.authenticationEntryPoint(

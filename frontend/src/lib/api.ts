@@ -349,6 +349,33 @@ export async function promoteModel(): Promise<boolean> {
   return ((await res.json()) as { promoted: boolean }).promoted
 }
 
+// ---------- FDS scoring config (maintainable detectors — ADMIN/ANALYST) ----------
+export interface ScoringLayer { enabled: boolean; weight: number }
+export interface ScoringConfigSnapshot {
+  layers: Record<string, ScoringLayer>
+  mediumCutoff: number; highCutoff: number; criticalCutoff: number
+}
+export interface ScoringConfigUpdate {
+  layers: { category: string; enabled: boolean; weight: number }[]
+  mediumCutoff: number; highCutoff: number; criticalCutoff: number
+}
+
+export async function fetchScoringConfig(): Promise<ScoringConfigSnapshot> {
+  const res = await fetch(`${API_BASE}/api/fds/scoring-config`)
+  if (!res.ok) throw new Error(`API ${res.status}`)
+  return (await res.json()) as ScoringConfigSnapshot
+}
+
+export async function updateScoringConfig(body: ScoringConfigUpdate): Promise<ScoringConfigSnapshot> {
+  const res = await fetch(`${API_BASE}/api/fds/scoring-config`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  })
+  if (!res.ok) throw new Error(await errorMessage(res, `Gagal menyimpan konfigurasi (${res.status})`))
+  return (await res.json()) as ScoringConfigSnapshot
+}
+
 // ---------- Buku Besar (general ledger) ----------
 export interface GlTrialLine { code: string; name: string; type: string; debitMinor: number; creditMinor: number }
 export interface GlTrialBalance { lines: GlTrialLine[]; totalDebitMinor: number; totalCreditMinor: number; balanced: boolean }

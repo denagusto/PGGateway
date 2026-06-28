@@ -27,10 +27,18 @@ public class RiskScoringEngine {
 
     private final FeatureExtractor features;
     private final List<Detector> detectors;
+    private final ScoringConfig config;
 
-    public RiskScoringEngine(FeatureExtractor features, List<Detector> detectors) {
+    @org.springframework.beans.factory.annotation.Autowired
+    public RiskScoringEngine(FeatureExtractor features, List<Detector> detectors, ScoringConfig config) {
         this.features = features;
         this.detectors = detectors;
+        this.config = config;
+    }
+
+    /** Convenience for tests/contexts without Spring — uses default (all-on, ×1.0, 40/60/80) config. */
+    public RiskScoringEngine(FeatureExtractor features, List<Detector> detectors) {
+        this(features, detectors, ScoringConfig.defaults());
     }
 
     public RiskAssessment assess(CanonicalEvent event) {
@@ -43,9 +51,19 @@ public class RiskScoringEngine {
                 // a misbehaving detector must never break scoring for the rest
             }
         }
-        signals.sort(Comparator.comparingInt(RiskSignal::points).reversed());
-        int score = combine(signals);
-        return new RiskAssessment(score, RiskBand.from(score), List.copyOf(signals));
+        // Apply the maintainable config: drop disabled layers and scale each signal's weight.
+        List<RiskSignal> tuned = new ArrayList<>();
+        for (RiskSignal s : signals) {
+            if (!config.enabled(s.category())) continue;
+            double factor = config.weight(s.category());
+            int pts = factor == 1.0 ? s.points()
+                    : Math.max(0, Math.min(99, (int) Math.round(s.points() * factor)));
+            tuned.add(factor == 1.0 ? s
+                    : new RiskSignal(s.code(), s.category(), s.label(), pts, s.detail(), s.regulatoryTag()));
+        }
+        tuned.sort(Comparator.comparingInt(RiskSignal::points).reversed());
+        int score = combine(tuned);
+        return new RiskAssessment(score, config.band(score), List.copyOf(tuned));
     }
 
     /**

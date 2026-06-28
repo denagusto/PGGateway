@@ -54,13 +54,17 @@ public class FraudDetectionService {
         worker.execute(() -> inspect(event));
     }
 
-    /** Synchronous inspection (also used by the seeder and tests). */
-    public void inspect(CanonicalEvent e) {
+    /**
+     * Synchronous inspection (also used by the seeder, the dev sandbox, and tests). Returns the
+     * full {@link RiskAssessment} so callers that want it (e.g. the sandbox simulator) can show the
+     * score and the signals that fired; the async ingest path simply ignores the return.
+     */
+    public RiskAssessment inspect(CanonicalEvent e) {
         RiskAssessment risk = engine.assess(e); // stateful feature extraction happens once inside
-        if (!risk.alertable()) return;          // below MEDIUM — logged, not surfaced as a case
+        if (!risk.alertable()) return risk;     // below MEDIUM — logged, not surfaced as a case
 
         RiskSignal primary = risk.primary();
-        if (alertStore.hasOpen(e.tenantId(), e.partitionKey(), primary.code())) return;
+        if (alertStore.hasOpen(e.tenantId(), e.partitionKey(), primary.code())) return risk;
 
         List<String> reasons = risk.signals().stream()
                 .map(s -> s.label() + " — " + s.detail() + " (+" + s.points() + ")")
@@ -72,5 +76,6 @@ public class FraudDetectionService {
                 risk.regulatoryTag(), reasons,
                 AlertStatus.OPEN, Instant.now()));
         if (live != null) live.publish("alerts"); // push the new case to live dashboards
+        return risk;
     }
 }

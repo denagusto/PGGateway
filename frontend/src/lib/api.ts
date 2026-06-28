@@ -104,8 +104,17 @@ export async function fetchTransactions(limit = 25, tenant?: string): Promise<Tr
 const TYPES = ['QRIS_MPM', 'TRANSFER_INTRABANK', 'VIRTUAL_ACCOUNT', 'DIRECT_DEBIT']
 const ACCOUNTS = ['ACC-9', 'ACC-21', 'ACC-37', 'ACC-55']
 
-/** Sends one random SNAP mirror payload through the real ingest pipeline. */
-export async function postRandomMirror(): Promise<void> {
+export interface SimulateResult {
+  outcome: string; eventId: string; tenant: string; scored: boolean
+  score: number; band: string; alertRaised: boolean
+  signals: { label: string; category: string; points: number }[]
+}
+
+/**
+ * Fires one transaction through the real pipeline via the JWT-authed dev sandbox (not the
+ * SNAP-signed partner ingest). Returns the live risk assessment so the UI can show score + signals.
+ */
+export async function postRandomMirror(): Promise<SimulateResult> {
   const n = Date.now()
   const type = TYPES[n % TYPES.length]
   const acc = ACCOUNTS[Math.floor(n / 7) % ACCOUNTS.length]
@@ -120,12 +129,13 @@ export async function postRandomMirror(): Promise<void> {
     latestTransactionStatus: '00',
     seq: null,
   }
-  const res = await fetch(`${API_BASE}/api/ingest/mirror`, {
+  const res = await fetch(`${API_BASE}/api/dev/simulate`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload),
   })
   if (!res.ok) throw new Error(`Ingest ${res.status}`)
+  return (await res.json()) as SimulateResult
 }
 
 // ---------- Fraud alerts (FDS) ----------

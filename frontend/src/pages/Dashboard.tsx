@@ -79,8 +79,14 @@ export default function Dashboard() {
   const toast = useToast()
   const sendTest = useMutation({
     mutationFn: postRandomMirror,
-    onSuccess: () => {
-      toast({ tone: 'success', title: 'Transaksi uji terkirim', description: 'Feed & risiko diperbarui real-time.' })
+    onSuccess: (r) => {
+      toast({
+        tone: r.alertRaised ? 'info' : 'success',
+        title: 'Transaksi uji diproses',
+        description: r.scored
+          ? `Skor risiko ${r.score} (${r.band})${r.alertRaised ? ' — alert dibuat' : ''}`
+          : `Hasil: ${r.outcome}`,
+      })
       qc.invalidateQueries({ queryKey: ['transactions'] })
       qc.invalidateQueries({ queryKey: ['alerts'] })
       qc.invalidateQueries({ queryKey: ['stats'] })

@@ -349,6 +349,32 @@ export async function promoteModel(): Promise<boolean> {
   return ((await res.json()) as { promoted: boolean }).promoted
 }
 
+// ---------- FDS lists (block / warning / allow — ADMIN/ANALYST) ----------
+export type ListAction = 'BLOCK' | 'WARNING' | 'ALLOW'
+export type ListEntityType = 'ACCOUNT' | 'BIN' | 'DEVICE' | 'IP' | 'COUNTRY'
+export interface FdsListEntry {
+  id: string; action: ListAction; entityType: ListEntityType; value: string; reason: string; createdAt: string
+}
+
+export async function fetchLists(): Promise<FdsListEntry[]> {
+  const res = await fetch(`${API_BASE}/api/fds/lists`)
+  if (!res.ok) throw new Error(`API ${res.status}`)
+  return (await res.json()) as FdsListEntry[]
+}
+
+export async function addListEntry(body: { action: ListAction; entityType: ListEntityType; value: string; reason: string }): Promise<FdsListEntry> {
+  const res = await fetch(`${API_BASE}/api/fds/lists`, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body),
+  })
+  if (!res.ok) throw new Error(await errorMessage(res, `Gagal menambah entri (${res.status})`))
+  return (await res.json()) as FdsListEntry
+}
+
+export async function removeListEntry(id: string): Promise<void> {
+  const res = await fetch(`${API_BASE}/api/fds/lists/${encodeURIComponent(id)}`, { method: 'DELETE' })
+  if (!res.ok && res.status !== 204) throw new Error(`Gagal menghapus entri (${res.status})`)
+}
+
 // ---------- FDS scoring config (maintainable detectors — ADMIN/ANALYST) ----------
 export interface ScoringLayer { enabled: boolean; weight: number }
 export interface ScoringConfigSnapshot {

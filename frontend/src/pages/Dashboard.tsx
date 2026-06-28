@@ -1,5 +1,14 @@
 import { useNavigate } from 'react-router-dom'
-import { Activity, ShieldCheck, Plus, LayoutDashboard } from 'lucide-react'
+import { Activity, ShieldCheck, Plus, LayoutDashboard, Banknote, ShieldAlert, Wallet, SlidersHorizontal, type LucideIcon } from 'lucide-react'
+
+function kpiIcon(label: string): LucideIcon {
+  const l = label.toLowerCase()
+  if (l.includes('volume')) return Banknote
+  if (l.includes('alert')) return ShieldAlert
+  if (l.includes('akun')) return Wallet
+  if (l.includes('rule')) return SlidersHorizontal
+  return Activity
+}
 import { useQuery, useMutation, useQueryClient, type UseQueryResult } from '@tanstack/react-query'
 import { PageHeader } from '../components/PageHeader'
 import { StatCard } from '../components/ui/StatCard'
@@ -99,6 +108,7 @@ export default function Dashboard() {
                 subTone={kpi.subTone}
                 valueTone={kpi.valueTone}
                 trend={kpi.trend}
+                icon={kpiIcon(kpi.label)}
               />
             ))}
       </div>

@@ -393,6 +393,23 @@ export async function removeListEntry(id: string): Promise<void> {
   if (!res.ok && res.status !== 204) throw new Error(`Gagal menghapus entri (${res.status})`)
 }
 
+// ---------- FDS Entity 360 / investigation (ADMIN/ANALYST) ----------
+export interface EntityTxn { txnRef: string; channel: string; amountMinor: number; direction: 'IN' | 'OUT'; counterparty: string; occurredAt: string }
+export interface EntityAlert { alertId: string; score: number; band: string; rule: string; report: string; status: string; createdAt: string }
+export interface EntityListHit { action: 'BLOCK' | 'WARNING' | 'ALLOW'; reason: string }
+export interface EntityCounterparty { account: string; count: number; sentTo: number; receivedFrom: number }
+export interface EntityStats { txnCount: number; alertCount: number; confirmedFraud: number; counterparties: number; totalInMinor: number; totalOutMinor: number }
+export interface Entity360 {
+  account: string; tenant: string | null; stats: EntityStats; listHits: EntityListHit[]
+  transactions: EntityTxn[]; alerts: EntityAlert[]; counterparties: EntityCounterparty[]
+}
+
+export async function fetchEntity(account: string): Promise<Entity360> {
+  const res = await fetch(`${API_BASE}/api/fds/entity/${encodeURIComponent(account)}`)
+  if (!res.ok) throw new Error(`API ${res.status}`)
+  return (await res.json()) as Entity360
+}
+
 // ---------- FDS scoring config (maintainable detectors — ADMIN/ANALYST) ----------
 export interface ScoringLayer { enabled: boolean; weight: number }
 export interface ScoringConfigSnapshot {

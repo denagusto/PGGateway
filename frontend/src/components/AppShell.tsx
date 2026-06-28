@@ -1,9 +1,8 @@
 import { useState, type ReactNode } from 'react'
-import { NavLink } from 'react-router-dom'
+import { NavLink, useLocation } from 'react-router-dom'
 import {
-  ChevronDown, ShieldCheck, LogOut, LayoutDashboard, ArrowLeftRight, BookOpen,
-  ShieldAlert, SlidersHorizontal, GitCompareArrows, Code2, ScrollText, Building2, Menu, BarChart3,
-  type LucideIcon,
+  ChevronDown, ShieldCheck, LogOut, ShieldAlert, SlidersHorizontal, Building2, Menu, BarChart3,
+  PanelLeftClose, type LucideIcon,
 } from 'lucide-react'
 import { useQuery } from '@tanstack/react-query'
 import { cn } from '../lib/cn'
@@ -13,90 +12,68 @@ import { fetchTenants } from '../lib/api'
 
 const ROLE_LABEL: Record<string, string> = { ADMIN: 'Platform Admin', PJP: 'Operator PJP', ANALYST: 'Analis Fraud' }
 
-interface NavLeaf { to: string; label: string; icon: LucideIcon; end?: boolean; admin?: boolean; fraud?: boolean }
-interface NavGroup { group: string; admin?: boolean; fraud?: boolean; items: NavLeaf[] }
-type NavNode = NavLeaf | NavGroup
+interface SubItem { to: string; label: string; icon: LucideIcon; end?: boolean; fraud?: boolean }
+interface Module { label: string; base: string; to?: string; admin?: boolean; sub?: SubItem[] }
 
-const NAV: NavNode[] = [
-  { to: '/', label: 'Dashboard', icon: LayoutDashboard, end: true },
-  { to: '/transaksi', label: 'Transaksi & Ledger', icon: ArrowLeftRight },
-  { to: '/buku-besar', label: 'Buku Besar', icon: BookOpen },
+const MODULES: Module[] = [
+  { label: 'Dashboard', base: '/', to: '/' },
+  { label: 'Transaksi', base: '/transaksi', to: '/transaksi' },
+  { label: 'Buku Besar', base: '/buku-besar', to: '/buku-besar' },
   {
-    group: 'Fraud Detection',
-    items: [
+    label: 'FDS', base: '/fds',
+    sub: [
       { to: '/fds', label: 'Antrian Alert', icon: ShieldAlert, end: true },
       { to: '/fds/analytics', label: 'Analitik', icon: BarChart3, fraud: true },
       { to: '/fds/rules', label: 'Rules & Daftar Pantau', icon: SlidersHorizontal, fraud: true },
     ],
   },
-  { to: '/rekonsiliasi', label: 'Rekonsiliasi', icon: GitCompareArrows },
-  { to: '/developer', label: 'Developer', icon: Code2 },
-  { to: '/audit', label: 'Audit Log', icon: ScrollText },
-  {
-    group: 'Platform',
-    admin: true,
-    items: [{ to: '/platform', label: 'Tenant & User', icon: Building2 }],
-  },
+  { label: 'Rekonsiliasi', base: '/rekonsiliasi', to: '/rekonsiliasi' },
+  { label: 'Developer', base: '/developer', to: '/developer' },
+  { label: 'Audit', base: '/audit', to: '/audit' },
+  { label: 'Platform', base: '/platform', admin: true, sub: [{ to: '/platform', label: 'Tenant & User', icon: Building2 }] },
 ]
 
-function navItemClass(isActive: boolean) {
-  return cn(
-    'flex items-center gap-3 rounded-md px-3 py-2 text-body font-medium transition-colors',
-    isActive ? 'bg-primary/10 font-semibold text-primary' : 'text-ink/70 hover:bg-bg hover:text-ink',
-  )
+function activeModule(path: string): Module | undefined {
+  let best: Module | undefined
+  for (const m of MODULES) {
+    if (m.base === '/') { if (path === '/') best = best && best.base.length > 1 ? best : m; continue }
+    if (path === m.base || path.startsWith(m.base + '/')) {
+      if (!best || m.base.length > best.base.length) best = m
+    }
+  }
+  return best
 }
 
-function Sidebar({ open }: { open: boolean }) {
+function TopBar({ active, onToggle, hasSide }: { active?: Module; onToggle: () => void; hasSide: boolean }) {
   const { user } = useAuth()
   const isFraudTeam = user?.role === 'ADMIN' || user?.role === 'ANALYST'
-  const canSee = (n: { admin?: boolean; fraud?: boolean }) =>
-    (!n.admin || user?.role === 'ADMIN') && (!n.fraud || isFraudTeam)
-
-  const Leaf = ({ item }: { item: NavLeaf }) => (
-    <NavLink to={item.to} end={item.end} className={({ isActive }) => navItemClass(isActive)}>
-      <item.icon aria-hidden="true" className="h-[18px] w-[18px] shrink-0" />
-      <span className="truncate">{item.label}</span>
-    </NavLink>
-  )
+  const canSeeSub = (s: SubItem) => !s.fraud || isFraudTeam
+  const modules = MODULES.filter((m) => !m.admin || user?.role === 'ADMIN')
+  const target = (m: Module) => m.to ?? (m.sub?.filter(canSeeSub)[0]?.to ?? m.base)
 
   return (
-    <aside className={cn(
-      'fixed bottom-0 left-0 top-14 z-30 w-60 overflow-y-auto border-r border-line bg-surface px-3 py-4 transition-transform duration-200',
-      open ? 'translate-x-0' : '-translate-x-full',
-    )}>
-      <nav className="space-y-0.5" aria-label="Navigasi utama">
-        {NAV.map((node, i) => {
-          if ('group' in node) {
-            if (!canSee(node)) return null
-            const items = node.items.filter(canSee)
-            if (items.length === 0) return null
-            return (
-              <div key={node.group} className="pt-3">
-                <div className="px-3 pb-1 text-micro font-semibold uppercase tracking-[0.06em] text-muted">{node.group}</div>
-                {items.map((it) => <Leaf key={it.to} item={it} />)}
-              </div>
-            )
-          }
-          return canSee(node) ? <Leaf key={node.to} item={node} /> : <span key={i} />
-        })}
-      </nav>
-    </aside>
-  )
-}
-
-function TopBar({ onToggle }: { onToggle: () => void }) {
-  return (
-    <header className="fixed inset-x-0 top-0 z-40 flex h-14 items-center gap-3 bg-gradient-to-r from-primary-900 via-primary-700 to-primary px-4 text-white shadow-[0_1px_3px_rgba(16,24,40,0.18)]">
-      <button type="button" onClick={onToggle} aria-label="Buka/tutup menu"
-        className="grid h-9 w-9 shrink-0 place-items-center rounded-md text-white/80 hover:bg-white/10 hover:text-white">
-        <Menu aria-hidden="true" className="h-5 w-5" />
-      </button>
-      <div className="flex items-center gap-2 font-bold">
+    <header className="fixed inset-x-0 top-0 z-40 flex h-14 items-center gap-2 bg-gradient-to-r from-primary-900 via-primary-700 to-primary px-4 text-white shadow-[0_1px_3px_rgba(16,24,40,0.18)]">
+      {hasSide ? (
+        <button type="button" onClick={onToggle} aria-label="Buka/tutup menu"
+          className="grid h-9 w-9 shrink-0 place-items-center rounded-md text-white/80 hover:bg-white/10 hover:text-white">
+          <Menu aria-hidden="true" className="h-5 w-5" />
+        </button>
+      ) : null}
+      <div className="mr-2 flex items-center gap-2 font-bold">
         <div className="grid h-7 w-7 place-items-center rounded-lg bg-white/12 ring-1 ring-inset ring-white/15">
           <ShieldCheck aria-hidden="true" className="h-4 w-4 text-white" />
         </div>
         <span className="text-h2 tracking-tight">PGGateway</span>
       </div>
+      <nav className="flex items-center gap-0.5" aria-label="Modul">
+        {modules.map((m) => (
+          <NavLink key={m.base} to={target(m)} end={m.base === '/'}
+            className={cn('rounded-md px-3 py-1.5 text-body font-semibold transition-colors',
+              active?.base === m.base ? 'bg-white/15 text-white shadow-inner' : 'text-white/65 hover:bg-white/8 hover:text-white')}>
+            {m.label}
+          </NavLink>
+        ))}
+      </nav>
       <div className="ml-auto flex items-center gap-3">
         <TenantSelect />
         <UserMenu />
@@ -105,22 +82,44 @@ function TopBar({ onToggle }: { onToggle: () => void }) {
   )
 }
 
-/** Tenant scope selector — re-scopes the whole dashboard to one PJP (or all). */
+function SideNav({ module, onClose }: { module: Module; onClose: () => void }) {
+  const { user } = useAuth()
+  const isFraudTeam = user?.role === 'ADMIN' || user?.role === 'ANALYST'
+  const subs = (module.sub ?? []).filter((s) => !s.fraud || isFraudTeam)
+  return (
+    <aside className="fixed bottom-0 left-0 top-14 z-30 flex w-60 flex-col overflow-y-auto border-r border-line bg-surface">
+      <div className="flex items-center justify-between px-4 pb-1 pt-4">
+        <span className="text-micro font-semibold uppercase tracking-[0.06em] text-muted">{module.label}</span>
+        <button type="button" onClick={onClose} aria-label="Tutup panel" className="text-muted hover:text-ink">
+          <PanelLeftClose aria-hidden="true" className="h-4 w-4" />
+        </button>
+      </div>
+      <nav className="space-y-0.5 px-3 py-2" aria-label={`Sub-menu ${module.label}`}>
+        {subs.map((s) => (
+          <NavLink key={s.to} to={s.to} end={s.end}
+            className={({ isActive }) => cn('flex items-center gap-3 rounded-md px-3 py-2 text-body font-medium transition-colors',
+              isActive ? 'bg-primary/10 font-semibold text-primary' : 'text-ink/70 hover:bg-bg hover:text-ink')}>
+            <s.icon aria-hidden="true" className="h-[18px] w-[18px] shrink-0" />
+            <span className="truncate">{s.label}</span>
+          </NavLink>
+        ))}
+      </nav>
+    </aside>
+  )
+}
+
 function TenantSelect() {
   const { tenant, setTenant } = useTenant()
   const { user } = useAuth()
   const { data } = useQuery<string[], Error>({ queryKey: ['tenants'], queryFn: fetchTenants })
   const tenants = data ?? []
-
   if (user && user.tenantId) {
     return (
-      <div className="inline-flex items-center gap-2 rounded-md border border-white/15 bg-white/5 py-1.5 px-3 text-body font-semibold text-[#e8eef6]">
-        <span aria-hidden="true" className="h-2 w-2 rounded-full bg-success" />
-        {user.tenantId}
+      <div className="inline-flex items-center gap-2 rounded-md border border-white/15 bg-white/5 px-3 py-1.5 text-body font-semibold text-[#e8eef6]">
+        <span aria-hidden="true" className="h-2 w-2 rounded-full bg-success" />{user.tenantId}
       </div>
     )
   }
-
   return (
     <div className="relative">
       <span aria-hidden="true" className="pointer-events-none absolute left-3 top-1/2 h-2 w-2 -translate-y-1/2 rounded-full bg-success" />
@@ -153,18 +152,25 @@ function UserMenu() {
 
 export function AppShell({ children }: { children: ReactNode }) {
   const { impersonating, user, stopImpersonate } = useAuth()
-  const [navOpen, setNavOpen] = useState(true)
+  const loc = useLocation()
+  const active = activeModule(loc.pathname)
+  const isFraudTeam = user?.role === 'ADMIN' || user?.role === 'ANALYST'
+  const visibleSubs = (active?.sub ?? []).filter((s) => !s.fraud || isFraudTeam)
+  const hasSide = visibleSubs.length > 0
+  const [sideOpen, setSideOpen] = useState(true)
+  const showSide = hasSide && sideOpen
+
   return (
     <div className="min-h-screen bg-bg">
-      <TopBar onToggle={() => setNavOpen((o) => !o)} />
-      <Sidebar open={navOpen} />
+      <TopBar active={active} hasSide={hasSide} onToggle={() => setSideOpen((o) => !o)} />
+      {showSide ? <SideNav module={active!} onClose={() => setSideOpen(false)} /> : null}
       {impersonating ? (
-        <div className={cn('fixed right-0 top-14 z-20 flex items-center justify-center gap-3 bg-warning px-4 py-1.5 text-small font-semibold text-white transition-[left] duration-200', navOpen ? 'left-60' : 'left-0')}>
+        <div className={cn('fixed right-0 top-14 z-20 flex items-center justify-center gap-3 bg-warning px-4 py-1.5 text-small font-semibold text-white transition-[left] duration-200', showSide ? 'left-60' : 'left-0')}>
           <span>Mode dukungan — Anda login sebagai tenant {user?.tenantId}</span>
           <button type="button" onClick={stopImpersonate} className="rounded bg-white/20 px-2 py-0.5 hover:bg-white/30">Keluar dari mode ini</button>
         </div>
       ) : null}
-      <main className={cn('px-7 pb-12 transition-[margin] duration-200', navOpen ? 'ml-60' : 'ml-0', impersonating ? 'pt-[104px]' : 'pt-[76px]')}>{children}</main>
+      <main className={cn('px-7 pb-12 transition-[margin] duration-200', showSide ? 'ml-60' : 'ml-0', impersonating ? 'pt-[104px]' : 'pt-[76px]')}>{children}</main>
     </div>
   )
 }

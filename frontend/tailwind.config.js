@@ -10,14 +10,14 @@ export default {
         line: '#e7e8f0',
         ink: '#1b1e2b',
         muted: '#6b7185',
-        // brand — fresh indigo (premium fintech)
+        // brand — Bank Indonesia deep blue (institutional, regulator-aligned)
         primary: {
-          DEFAULT: '#4f46e5',
-          700: '#4338ca',
-          900: '#312e81',
-          50: '#eef2ff',
+          DEFAULT: '#16357e',
+          700: '#0f2862',
+          900: '#0a1c46',
+          50: '#e9edf7',
         },
-        accent: '#4f46e5',
+        accent: '#2563eb',
         // semantic status
         success: {
           DEFAULT: '#059669',

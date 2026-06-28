@@ -42,7 +42,7 @@ export default function BukuBesar() {
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-5">
         {/* Trial balance */}
-        <Card className="lg:col-span-3">
+        <Card className="flex flex-col lg:col-span-3 lg:h-[640px]">
           <CardHeader
             title="Neraca Saldo"
             action={
@@ -53,6 +53,7 @@ export default function BukuBesar() {
               ) : <Scale aria-hidden="true" className="h-4 w-4 text-muted" />
             }
           />
+          <div className="min-h-0 flex-1 overflow-y-auto">
           {tb.isError ? (
             <ErrorState onRetry={() => tb.refetch()} />
           ) : tb.isPending ? (
@@ -85,11 +86,13 @@ export default function BukuBesar() {
               </TBody>
             </Table>
           )}
+          </div>
         </Card>
 
         {/* Journal */}
-        <Card className="lg:col-span-2">
+        <Card className="flex flex-col lg:col-span-2 lg:h-[640px]">
           <CardHeader title="Jurnal" action={<Layers aria-hidden="true" className="h-4 w-4 text-muted" />} />
+          <div className="min-h-0 flex-1 overflow-y-auto">
           {jr.isError ? (
             <ErrorState onRetry={() => jr.refetch()} />
           ) : jr.isPending ? (
@@ -98,7 +101,7 @@ export default function BukuBesar() {
             <EmptyState icon={Layers} title="Belum ada jurnal" description="Posting jurnal muncul saat transaksi masuk." />
           ) : (
             <ul className="divide-y divide-line">
-              {jr.data.slice(0, 12).map((e) => (
+              {jr.data.map((e) => (
                 <li key={e.id} className="px-5 py-3">
                   <div className="mb-1 flex items-center justify-between gap-2">
                     <span className="truncate text-small font-semibold text-ink">{e.description}</span>
@@ -120,6 +123,7 @@ export default function BukuBesar() {
               ))}
             </ul>
           )}
+          </div>
         </Card>
       </div>
     </>

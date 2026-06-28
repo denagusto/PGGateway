@@ -21,8 +21,9 @@ export default function Ledger() {
       <PageHeader icon={ArrowLeftRight} title="Transaksi / Ledger" subtitle="Saldo akun (double-entry) + transaksi terbaru" />
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        <Card>
+        <Card className="flex flex-col lg:h-[640px]">
           <CardHeader title="Saldo Akun (Ledger)" action={<Wallet aria-hidden="true" className="h-4 w-4 text-muted" />} />
+          <div className="min-h-0 flex-1 overflow-y-auto">
           {accounts.isError ? (
             <ErrorState onRetry={() => accounts.refetch()} />
           ) : accounts.isPending ? (
@@ -47,10 +48,12 @@ export default function Ledger() {
               </TBody>
             </Table>
           )}
+          </div>
         </Card>
 
-        <Card>
+        <Card className="flex flex-col lg:h-[640px]">
           <CardHeader title="Transaksi terbaru" action={<Activity aria-hidden="true" className="h-4 w-4 text-success" />} />
+          <div className="min-h-0 flex-1 overflow-y-auto">
           {txns.isError ? (
             <ErrorState onRetry={() => txns.refetch()} />
           ) : txns.isPending ? (
@@ -74,6 +77,7 @@ export default function Ledger() {
               </TBody>
             </Table>
           )}
+          </div>
         </Card>
       </div>
     </>

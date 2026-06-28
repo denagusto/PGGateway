@@ -2,7 +2,6 @@ import { useNavigate } from 'react-router-dom'
 import { Activity, ShieldCheck, Plus, LayoutDashboard } from 'lucide-react'
 import { useQuery, useMutation, useQueryClient, type UseQueryResult } from '@tanstack/react-query'
 import { PageHeader } from '../components/PageHeader'
-import { StateToggle } from '../components/StateToggle'
 import { StatCard } from '../components/ui/StatCard'
 import { Card, CardHeader } from '../components/ui/Card'
 import { Button } from '../components/ui/Button'
@@ -34,7 +33,7 @@ function statsToKpis(s: Stats): Kpi[] {
 }
 
 export default function Dashboard() {
-  const { state, setState } = useScreenState()
+  const { state } = useScreenState()
   const { tenant } = useTenant()
   const navigate = useNavigate()
   const qc = useQueryClient()
@@ -80,7 +79,6 @@ export default function Dashboard() {
         icon={LayoutDashboard}
         title="Dashboard"
         subtitle="Pantauan langsung transaksi, risiko, dan rekonsiliasi"
-        right={<StateToggle state={state} onChange={setState} />}
       />
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">
@@ -106,7 +104,7 @@ export default function Dashboard() {
       </div>
 
       <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-3">
-        <Card className="lg:col-span-2">
+        <Card className="flex flex-col lg:col-span-2 lg:h-[620px]">
           <CardHeader
             title="Aliran transaksi langsung"
             action={
@@ -121,12 +119,16 @@ export default function Dashboard() {
               </Button>
             }
           />
-          <TxnFeed query={txnQuery} />
+          <div className="min-h-0 flex-1 overflow-y-auto">
+            <TxnFeed query={txnQuery} />
+          </div>
         </Card>
 
-        <Card>
+        <Card className="flex flex-col lg:h-[620px]">
           <CardHeader title="Alert fraud terbaru" />
-          <AlertList query={alertsQuery} onOpen={(id) => navigate(`/fds/${id}`)} />
+          <div className="min-h-0 flex-1 overflow-y-auto">
+            <AlertList query={alertsQuery} onOpen={(id) => navigate(`/fds/${id}`)} />
+          </div>
         </Card>
       </div>
     </>
@@ -243,7 +245,7 @@ function AlertList({
                 <span className="block text-body text-ink">{a.judul}</span>
                 {a.report ? (
                   <span className="text-micro uppercase tracking-wide text-muted">
-                    {a.report} · PPATK
+                    {a.report}
                   </span>
                 ) : null}
               </span>

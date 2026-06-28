@@ -10,6 +10,7 @@ import AlertDetail from './pages/AlertDetail'
 import Reconciliation from './pages/Reconciliation'
 import Rules from './pages/Rules'
 import Developer from './pages/Developer'
+import DeveloperSandbox from './pages/DeveloperSandbox'
 import Ledger from './pages/Ledger'
 import BukuBesar from './pages/BukuBesar'
 import FdsQueue from './pages/FdsQueue'
@@ -61,6 +62,7 @@ function AuthedApp() {
           <Route path="/fds/:id" element={<AlertDetail />} />
           <Route path="/rekonsiliasi" element={<Reconciliation />} />
           <Route path="/developer" element={<Developer />} />
+          <Route path="/developer/sandbox" element={<DeveloperSandbox />} />
           <Route path="/platform" element={<Platform />} />
           <Route path="/audit" element={<Audit />} />
           <Route path="*" element={<Navigate to="/" replace />} />

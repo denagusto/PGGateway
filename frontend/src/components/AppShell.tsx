@@ -2,7 +2,7 @@ import { useState, type ReactNode } from 'react'
 import { NavLink, useLocation } from 'react-router-dom'
 import {
   ChevronDown, ShieldCheck, LogOut, ShieldAlert, SlidersHorizontal, Building2, Menu, BarChart3, Layers,
-  BrainCircuit, ListChecks, FlaskConical, UserSearch, Sparkles, PanelLeftClose, type LucideIcon,
+  BrainCircuit, ListChecks, FlaskConical, UserSearch, Sparkles, KeyRound, PanelLeftClose, type LucideIcon,
 } from 'lucide-react'
 import { useQuery } from '@tanstack/react-query'
 import { cn } from '../lib/cn'
@@ -34,7 +34,13 @@ const MODULES: Module[] = [
     ],
   },
   { label: 'Rekonsiliasi', base: '/rekonsiliasi', to: '/rekonsiliasi' },
-  { label: 'Developer', base: '/developer', to: '/developer' },
+  {
+    label: 'Developer', base: '/developer',
+    sub: [
+      { to: '/developer', label: 'Ringkasan & API Keys', icon: KeyRound, end: true },
+      { to: '/developer/sandbox', label: 'Sandbox', icon: FlaskConical },
+    ],
+  },
   { label: 'Audit', base: '/audit', to: '/audit' },
   { label: 'Platform', base: '/platform', admin: true, sub: [{ to: '/platform', label: 'Tenant & User', icon: Building2 }] },
 ]

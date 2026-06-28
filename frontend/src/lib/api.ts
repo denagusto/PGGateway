@@ -109,6 +109,20 @@ export interface SimulateResult {
   score: number; band: string; alertRaised: boolean
   signals: { label: string; category: string; points: number }[]
 }
+export interface SimulatePayload {
+  externalId: string; partnerReferenceNo: string; transactionType: string
+  amount: { value: string; currency: string }
+  sourceAccountNo: string; beneficiaryAccountNo: string; latestTransactionStatus: string; seq: null
+}
+
+/** Run an explicit transaction scenario through the real pipeline (JWT-authed sandbox). */
+export async function simulateTxn(payload: SimulatePayload): Promise<SimulateResult> {
+  const res = await fetch(`${API_BASE}/api/dev/simulate`, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload),
+  })
+  if (!res.ok) throw new Error(await errorMessage(res, `Simulasi gagal (${res.status})`))
+  return (await res.json()) as SimulateResult
+}
 
 /**
  * Fires one transaction through the real pipeline via the JWT-authed dev sandbox (not the
@@ -129,13 +143,7 @@ export async function postRandomMirror(): Promise<SimulateResult> {
     latestTransactionStatus: '00',
     seq: null,
   }
-  const res = await fetch(`${API_BASE}/api/dev/simulate`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload),
-  })
-  if (!res.ok) throw new Error(`Ingest ${res.status}`)
-  return (await res.json()) as SimulateResult
+  return simulateTxn(payload)
 }
 
 // ---------- Fraud alerts (FDS) ----------

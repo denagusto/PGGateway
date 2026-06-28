@@ -17,6 +17,7 @@ import FdsAnalytics from './pages/FdsAnalytics'
 import FdsDetectors from './pages/FdsDetectors'
 import FdsModel from './pages/FdsModel'
 import FdsLists from './pages/FdsLists'
+import FdsSimulation from './pages/FdsSimulation'
 import Audit from './pages/Audit'
 import Platform from './pages/Platform'
 
@@ -51,6 +52,7 @@ function AuthedApp() {
           <Route path="/fds/detectors" element={<FdsDetectors />} />
           <Route path="/fds/model" element={<FdsModel />} />
           <Route path="/fds/lists" element={<FdsLists />} />
+          <Route path="/fds/simulation" element={<FdsSimulation />} />
           <Route path="/fds/rules" element={<Rules />} />
           <Route path="/fds/:id" element={<AlertDetail />} />
           <Route path="/rekonsiliasi" element={<Reconciliation />} />

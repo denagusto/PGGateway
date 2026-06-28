@@ -2,7 +2,7 @@ import { useState, type ReactNode } from 'react'
 import { NavLink, useLocation } from 'react-router-dom'
 import {
   ChevronDown, ShieldCheck, LogOut, ShieldAlert, SlidersHorizontal, Building2, Menu, BarChart3, Layers,
-  BrainCircuit, ListChecks, PanelLeftClose, type LucideIcon,
+  BrainCircuit, ListChecks, FlaskConical, PanelLeftClose, type LucideIcon,
 } from 'lucide-react'
 import { useQuery } from '@tanstack/react-query'
 import { cn } from '../lib/cn'
@@ -27,6 +27,7 @@ const MODULES: Module[] = [
       { to: '/fds/detectors', label: 'Detektor & Scoring', icon: Layers, fraud: true },
       { to: '/fds/model', label: 'Model & ML', icon: BrainCircuit, fraud: true },
       { to: '/fds/lists', label: 'Daftar (Lists)', icon: ListChecks, fraud: true },
+      { to: '/fds/simulation', label: 'Simulasi', icon: FlaskConical, fraud: true },
       { to: '/fds/rules', label: 'Rules & Daftar Pantau', icon: SlidersHorizontal, fraud: true },
     ],
   },

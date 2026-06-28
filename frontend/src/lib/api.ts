@@ -314,6 +314,41 @@ export async function removeWatchlist(account: string): Promise<void> {
   if (!res.ok && res.status !== 204) throw new Error(`Gagal menghapus dari daftar pantau (${res.status})`)
 }
 
+// ---------- FDS ML model (confidential — ADMIN/ANALYST) ----------
+export interface ModelMetrics {
+  n: number; tp: number; fp: number; tn: number; fn: number
+  precision: number; recall: number; f1: number; accuracy: number; auc: number
+}
+export interface FeatureWeight { feature: string; weight: number }
+export interface TrainingRun {
+  version: number; trainedAt: string; samples: number; positives: number; negatives: number
+  holdout: number; metrics: ModelMetrics; championF1Before: number; autoPromoted: boolean; status: string
+}
+export interface ModelSnapshot {
+  modelType: string; championVersion: number; trained: boolean; featureCount: number
+  labelledSamples: number; positives: number; negatives: number; openUnlabelled: number
+  championMetrics: ModelMetrics; challengerVersion: number; challengerMetrics: ModelMetrics | null
+  weights: FeatureWeight[]; history: TrainingRun[]
+}
+
+export async function fetchModel(): Promise<ModelSnapshot> {
+  const res = await fetch(`${API_BASE}/api/fds/model`)
+  if (!res.ok) throw new Error(`API ${res.status}`)
+  return (await res.json()) as ModelSnapshot
+}
+
+export async function trainModel(): Promise<TrainingRun> {
+  const res = await fetch(`${API_BASE}/api/fds/model/train`, { method: 'POST' })
+  if (!res.ok) throw new Error(await errorMessage(res, `Gagal melatih model (${res.status})`))
+  return (await res.json()) as TrainingRun
+}
+
+export async function promoteModel(): Promise<boolean> {
+  const res = await fetch(`${API_BASE}/api/fds/model/promote`, { method: 'POST' })
+  if (!res.ok) throw new Error(await errorMessage(res, `Gagal promosi model (${res.status})`))
+  return ((await res.json()) as { promoted: boolean }).promoted
+}
+
 // ---------- Buku Besar (general ledger) ----------
 export interface GlTrialLine { code: string; name: string; type: string; debitMinor: number; creditMinor: number }
 export interface GlTrialBalance { lines: GlTrialLine[]; totalDebitMinor: number; totalCreditMinor: number; balanced: boolean }

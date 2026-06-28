@@ -57,6 +57,9 @@ public class SecurityConfig {
                         // platform risk/fraud team (ADMIN/ANALYST) may read or change them, never PJP tenants.
                         .requestMatchers("/api/rules", "/api/rules/**").hasAnyRole("ADMIN", "ANALYST")
                         .requestMatchers("/api/fds/watchlist", "/api/fds/watchlist/**").hasAnyRole("ADMIN", "ANALYST")
+                        // The ML model, its weights, metrics and training controls are part of the
+                        // confidential detection stack — risk/fraud team only.
+                        .requestMatchers("/api/fds/model", "/api/fds/model/**").hasAnyRole("ADMIN", "ANALYST")
                         .anyRequest().authenticated())
                 // 401 for unauthenticated (frontend -> show login), 403 stays for authenticated-but-forbidden
                 .exceptionHandling(e -> e.authenticationEntryPoint(

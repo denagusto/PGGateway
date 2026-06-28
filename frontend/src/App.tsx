@@ -11,6 +11,8 @@ import Reconciliation from './pages/Reconciliation'
 import Rules from './pages/Rules'
 import Developer from './pages/Developer'
 import DeveloperSandbox from './pages/DeveloperSandbox'
+import DeveloperPlayground from './pages/DeveloperPlayground'
+import DeveloperLogs from './pages/DeveloperLogs'
 import Ledger from './pages/Ledger'
 import BukuBesar from './pages/BukuBesar'
 import FdsQueue from './pages/FdsQueue'
@@ -63,6 +65,8 @@ function AuthedApp() {
           <Route path="/rekonsiliasi" element={<Reconciliation />} />
           <Route path="/developer" element={<Developer />} />
           <Route path="/developer/sandbox" element={<DeveloperSandbox />} />
+          <Route path="/developer/playground" element={<DeveloperPlayground />} />
+          <Route path="/developer/logs" element={<DeveloperLogs />} />
           <Route path="/platform" element={<Platform />} />
           <Route path="/audit" element={<Audit />} />
           <Route path="*" element={<Navigate to="/" replace />} />

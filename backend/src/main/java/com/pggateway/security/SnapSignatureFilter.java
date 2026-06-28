@@ -43,14 +43,16 @@ public class SnapSignatureFilter extends OncePerRequestFilter {
     private static final Duration MAX_SKEW = Duration.ofMinutes(5);
 
     private final ApiKeyService keys;
+    private final com.pggateway.developer.IntegrationLog integrationLog;
     private final boolean enabled;
 
     // signature -> first-seen instant; bounds replay within the freshness window.
     private final ConcurrentHashMap<String, Instant> seen = new ConcurrentHashMap<>();
 
-    public SnapSignatureFilter(ApiKeyService keys,
+    public SnapSignatureFilter(ApiKeyService keys, com.pggateway.developer.IntegrationLog integrationLog,
                                @Value("${pggateway.security.hmac.enabled:true}") boolean enabled) {
         this.keys = keys;
+        this.integrationLog = integrationLog;
         this.enabled = enabled;
     }
 
@@ -63,24 +65,28 @@ public class SnapSignatureFilter extends OncePerRequestFilter {
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response,
                                     FilterChain chain) throws ServletException, IOException {
         CachedBodyHttpServletRequest req = new CachedBodyHttpServletRequest(request);
+        long start = System.nanoTime();
+        String method = req.getMethod();
+        String path = req.getRequestURI();
 
         String clientKey = req.getHeader("X-CLIENT-KEY");
         String timestamp = req.getHeader("X-TIMESTAMP");
         String signature = req.getHeader("X-SIGNATURE");
 
         if (blank(clientKey) || blank(timestamp) || blank(signature)) {
-            deny(response, 400, "4000001",
-                    "Header X-CLIENT-KEY, X-TIMESTAMP, dan X-SIGNATURE wajib diisi");
+            denyLog(response, 400, "4000001",
+                    "Header X-CLIENT-KEY, X-TIMESTAMP, dan X-SIGNATURE wajib diisi", clientKey, null, method, path, start);
             return;
         }
 
         Optional<ApiKeyService.Resolved> resolved = keys.resolve(clientKey);
         if (resolved.isEmpty()) {
-            deny(response, 401, "4010002", "Client key tidak dikenal atau telah dicabut");
+            denyLog(response, 401, "4010002", "Client key tidak dikenal atau telah dicabut", clientKey, null, method, path, start);
             return;
         }
+        String tenantId = resolved.get().key().tenantId();
         if (!resolved.get().key().scopes().contains("ingest:write")) {
-            deny(response, 403, "4030001", "Scope ingest:write tidak dimiliki kredensial ini");
+            denyLog(response, 403, "4030001", "Scope ingest:write tidak dimiliki kredensial ini", clientKey, tenantId, method, path, start);
             return;
         }
 
@@ -88,32 +94,48 @@ public class SnapSignatureFilter extends OncePerRequestFilter {
         try {
             ts = OffsetDateTime.parse(timestamp).toInstant();
         } catch (Exception e) {
-            deny(response, 400, "4000002", "X-TIMESTAMP bukan format ISO-8601 yang valid");
+            denyLog(response, 400, "4000002", "X-TIMESTAMP bukan format ISO-8601 yang valid", clientKey, tenantId, method, path, start);
             return;
         }
         Instant now = Instant.now();
         if (Duration.between(ts, now).abs().compareTo(MAX_SKEW) > 0) {
-            deny(response, 401, "4010003", "Timestamp di luar toleransi 5 menit (kemungkinan replay)");
+            denyLog(response, 401, "4010003", "Timestamp di luar toleransi 5 menit (kemungkinan replay)", clientKey, tenantId, method, path, start);
             return;
         }
 
         String bodyHash = SnapSignature.bodyHashHex(req.cachedBody());
         String expected = SnapSignature.sign(resolved.get().secret(),
-                SnapSignature.stringToSign(req.getMethod(), req.getRequestURI(), clientKey, bodyHash, timestamp));
+                SnapSignature.stringToSign(method, path, clientKey, bodyHash, timestamp));
         if (!SnapSignature.matches(expected, signature)) {
-            deny(response, 401, "4010001", "Signature tidak valid");
+            denyLog(response, 401, "4010001", "Signature tidak valid", clientKey, tenantId, method, path, start);
             return;
         }
 
         pruneSeen(now);
         if (seen.putIfAbsent(signature, now) != null) {
-            deny(response, 409, "4090001", "Permintaan duplikat — signature sudah dipakai (replay)");
+            denyLog(response, 409, "4090001", "Permintaan duplikat — signature sudah dipakai (replay)", clientKey, tenantId, method, path, start);
             return;
         }
 
-        req.setAttribute(ATTR_TENANT, resolved.get().key().tenantId());
+        req.setAttribute(ATTR_TENANT, tenantId);
         req.setAttribute(ATTR_CLIENT_KEY, clientKey);
         chain.doFilter(req, response);
+        int status = response.getStatus();
+        integrationLog.record(clientKey, tenantId, method, path, status,
+                status < 400 ? "OK" : String.valueOf(status),
+                status < 400 ? "Diterima" : "Ditolak oleh handler", elapsedMs(start));
+    }
+
+    /** Write the SNAP error response AND record the failed attempt to the integration monitor. */
+    private void denyLog(HttpServletResponse response, int status, String code, String message,
+                         String clientKey, String tenantId, String method, String path, long start)
+            throws IOException {
+        integrationLog.record(clientKey, tenantId, method, path, status, code, message, elapsedMs(start));
+        deny(response, status, code, message);
+    }
+
+    private static long elapsedMs(long startNanos) {
+        return (System.nanoTime() - startNanos) / 1_000_000;
     }
 
     private void pruneSeen(Instant now) {

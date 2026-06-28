@@ -2,7 +2,8 @@ import { useState, type ReactNode } from 'react'
 import { NavLink, useLocation } from 'react-router-dom'
 import {
   ChevronDown, ShieldCheck, LogOut, ShieldAlert, SlidersHorizontal, Building2, Menu, BarChart3, Layers,
-  BrainCircuit, ListChecks, FlaskConical, UserSearch, Sparkles, KeyRound, PanelLeftClose, type LucideIcon,
+  BrainCircuit, ListChecks, FlaskConical, UserSearch, Sparkles, KeyRound, Wand2, Activity,
+  PanelLeftClose, type LucideIcon,
 } from 'lucide-react'
 import { useQuery } from '@tanstack/react-query'
 import { cn } from '../lib/cn'
@@ -39,6 +40,8 @@ const MODULES: Module[] = [
     sub: [
       { to: '/developer', label: 'Ringkasan & API Keys', icon: KeyRound, end: true },
       { to: '/developer/sandbox', label: 'Sandbox', icon: FlaskConical },
+      { to: '/developer/playground', label: 'Signature Playground', icon: Wand2 },
+      { to: '/developer/logs', label: 'Integration Monitor', icon: Activity },
     ],
   },
   { label: 'Audit', base: '/audit', to: '/audit' },

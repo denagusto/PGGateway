@@ -402,6 +402,48 @@ export async function removeListEntry(id: string): Promise<void> {
   if (!res.ok && res.status !== 204) throw new Error(`Gagal menghapus entri (${res.status})`)
 }
 
+// ---------- Developer tools: signature playground + integration monitor ----------
+export interface SignResult {
+  timestamp: string; bodyHashHex: string; stringToSign: string; signature: string
+  headers: Record<string, string>
+}
+export interface IntegrationLogEntry {
+  at: string; clientKey: string; tenantId: string | null; method: string; path: string
+  status: number; code: string; message: string; latencyMs: number
+}
+
+export async function signSnap(req: { clientKey: string; method: string; path: string; body: string }): Promise<SignResult> {
+  const res = await fetch(`${API_BASE}/api/dev/sign`, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(req),
+  })
+  if (!res.ok) throw new Error(await errorMessage(res, `Gagal tanda tangan (${res.status})`))
+  return (await res.json()) as SignResult
+}
+
+export async function fetchDevLogs(limit = 100): Promise<IntegrationLogEntry[]> {
+  const res = await fetch(`${API_BASE}/api/dev/logs?limit=${limit}`)
+  if (!res.ok) throw new Error(`API ${res.status}`)
+  return (await res.json()) as IntegrationLogEntry[]
+}
+
+/** Sign a payload then POST it to the real ingest endpoint — returns the HTTP status + parsed body. */
+export async function sendSignedIngest(clientKey: string, body: string): Promise<{ status: number; body: unknown }> {
+  const path = '/api/ingest/mirror'
+  const signed = await signSnap({ clientKey, method: 'POST', path, body })
+  const res = await fetch(`${API_BASE}${path}`, { method: 'POST', headers: signed.headers, body })
+  let parsed: unknown = null
+  try { parsed = await res.json() } catch { /* ignore */ }
+  return { status: res.status, body: parsed }
+}
+
+/** Deliberately send an UNSIGNED request (to demonstrate a failed integration in the monitor). */
+export async function sendUnsignedIngest(body: string): Promise<{ status: number; body: unknown }> {
+  const res = await fetch(`${API_BASE}/api/ingest/mirror`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body })
+  let parsed: unknown = null
+  try { parsed = await res.json() } catch { /* ignore */ }
+  return { status: res.status, body: parsed }
+}
+
 // ---------- FDS Copilot + Typology library (on-prem AI/RAG — ADMIN/ANALYST) ----------
 export interface Typology {
   id: string; code: string; name: string; category: string; description: string

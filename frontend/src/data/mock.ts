@@ -51,12 +51,17 @@ export const dashboardKpis: Kpi[] = [
   },
 ]
 
+const tx = (id: string, waktu: string, channel: Transaction['channel'], jumlah: number, status: Transaction['status']): Transaction => ({
+  id, waktu, channel, jumlah, status,
+  txnRef: `REF-${id}`, account: `ACC-${id}`, source: `ACC-${id}`, dest: 'ACC-merchant',
+  currency: 'IDR', occurredAt: `2026-06-28T${waktu}+07:00`, rawStatus: '00',
+})
 export const transactions: Transaction[] = [
-  { id: 't1', waktu: '10:42:07', channel: 'QRIS', jumlah: 75_000, status: 'sukses' },
-  { id: 't2', waktu: '10:42:07', channel: 'Transfer', jumlah: 2_500_000, status: 'sukses' },
-  { id: 't3', waktu: '10:42:06', channel: 'QRIS', jumlah: 19_000, status: 'pending' },
-  { id: 't4', waktu: '10:42:06', channel: 'Virtual Account', jumlah: 540_000, status: 'sukses' },
-  { id: 't5', waktu: '10:42:05', channel: 'QRIS', jumlah: 1_200_000, status: 'ditandai' },
+  tx('t1', '10:42:07', 'QRIS', 75_000, 'sukses'),
+  tx('t2', '10:42:07', 'Transfer', 2_500_000, 'sukses'),
+  tx('t3', '10:42:06', 'QRIS', 19_000, 'pending'),
+  tx('t4', '10:42:06', 'Virtual Account', 540_000, 'sukses'),
+  tx('t5', '10:42:05', 'QRIS', 1_200_000, 'ditandai'),
 ]
 
 export const fraudAlerts: FraudAlertSummary[] = [

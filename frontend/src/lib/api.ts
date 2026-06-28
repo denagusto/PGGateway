@@ -54,6 +54,8 @@ interface CanonicalEvent {
   occurredAt: string
   status: string
   partitionKey: string
+  sourceParty: string
+  destParty: string
 }
 
 function mapChannel(c: string): Channel {
@@ -80,6 +82,13 @@ function mapTxn(e: CanonicalEvent): Transaction {
     channel: mapChannel(e.channel),
     jumlah: Math.round(e.amountMinor / 100), // minor units (scale 2) -> rupiah
     status: mapStatus(e.status),
+    txnRef: e.txnRef,
+    account: e.partitionKey,
+    source: e.sourceParty,
+    dest: e.destParty,
+    currency: e.currency,
+    occurredAt: e.occurredAt,
+    rawStatus: e.status,
   }
 }
 

@@ -8,6 +8,13 @@ export interface Transaction {
   channel: Channel
   jumlah: number
   status: TxnStatus
+  txnRef: string
+  account: string // partition key (source account / shard)
+  source: string
+  dest: string
+  currency: string
+  occurredAt: string // ISO timestamp
+  rawStatus: string // upstream status code
 }
 
 export interface FraudAlertSummary {

@@ -1,7 +1,7 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Search, UserSearch, Ban, AlertTriangle, ShieldCheck, ArrowUpRight, ArrowDownLeft } from 'lucide-react'
 import { useQuery } from '@tanstack/react-query'
-import { Link } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
 import { PageHeader } from '../components/PageHeader'
 import { Card, CardBody, CardHeader } from '../components/ui/Card'
 import { StatCard } from '../components/ui/StatCard'
@@ -22,11 +22,19 @@ function bandTone(band: string): 'danger' | 'warning' | 'neutral' {
 const STATUS_LABEL: Record<string, string> = { OPEN: 'Terbuka', CONFIRMED_FRAUD: 'Fraud', FALSE_POSITIVE: 'False-pos' }
 
 export default function FdsInvestigation() {
+  const [params] = useSearchParams()
   const [input, setInput] = useState('')
   const [account, setAccount] = useState<string | null>(null)
   const q = useQuery<Entity360, Error>({ queryKey: ['entity', account], queryFn: () => fetchEntity(account!), enabled: !!account })
 
   function search(a: string) { setInput(a); setAccount(a.trim()) }
+
+  // Deep-link: /fds/investigation?account=ACC-xxx (from the Transaksi drawer, alerts, etc.)
+  useEffect(() => {
+    const a = params.get('account')
+    if (a) search(a)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [params])
 
   return (
     <>

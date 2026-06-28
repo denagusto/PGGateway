@@ -30,8 +30,10 @@ public class RegulatoryRuleDetector implements Detector {
     public List<RiskSignal> evaluate(CanonicalEvent event, Map<String, Object> features) {
         List<RiskSignal> signals = new ArrayList<>();
         for (Rule r : engine.evaluate(features)) {
+            // Do NOT leak the rule formula here — alerts are visible to PJP operators; the SpEL
+            // expression is confidential FDS logic, shown only inside the FDS Console.
             signals.add(RiskSignal.regulatory(r.id(), r.name(), r.score(),
-                    "Memenuhi aturan: " + r.expression(), r.report()));
+                    "Aturan FDS terpenuhi", r.report()));
         }
         return signals;
     }

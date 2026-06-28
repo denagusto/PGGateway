@@ -53,9 +53,10 @@ public class SecurityConfig {
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.POST, "/api/dev/keys").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.DELETE, "/api/dev/keys/**").hasRole("ADMIN")
-                        .requestMatchers(HttpMethod.POST, "/api/rules", "/api/fds/watchlist").hasAnyRole("ADMIN", "ANALYST")
-                        .requestMatchers(HttpMethod.PUT, "/api/rules/**").hasAnyRole("ADMIN", "ANALYST")
-                        .requestMatchers(HttpMethod.DELETE, "/api/rules/**", "/api/fds/watchlist/**").hasAnyRole("ADMIN", "ANALYST")
+                        // FDS rules + watchlist are the confidential "secret sauce" — only the
+                        // platform risk/fraud team (ADMIN/ANALYST) may read or change them, never PJP tenants.
+                        .requestMatchers("/api/rules", "/api/rules/**").hasAnyRole("ADMIN", "ANALYST")
+                        .requestMatchers("/api/fds/watchlist", "/api/fds/watchlist/**").hasAnyRole("ADMIN", "ANALYST")
                         .anyRequest().authenticated())
                 // 401 for unauthenticated (frontend -> show login), 403 stays for authenticated-but-forbidden
                 .exceptionHandling(e -> e.authenticationEntryPoint(

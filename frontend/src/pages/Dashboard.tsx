@@ -39,7 +39,8 @@ function statsToKpis(s: Stats): Kpi[] {
       valueTone: s.openAlerts > 0 ? 'danger' : 'ink',
     },
     { label: 'Akun aktif', value: formatInt(s.activeAccounts), sub: 'unik', subTone: 'muted', valueTone: 'ink' },
-    { label: 'Rule FDS aktif', value: formatInt(s.rulesActive), sub: 'aturan', subTone: 'muted', valueTone: 'ink' },
+    // NOTE: jumlah rule FDS sengaja TIDAK ditampilkan di dashboard umum — itu info FDS rahasia,
+    // hanya untuk tim risk/fraud di FDS Console.
   ]
 }
 
@@ -110,9 +111,9 @@ export default function Dashboard() {
         subtitle="Pantauan langsung transaksi, risiko, dan rekonsiliasi"
       />
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {kpiQuery.isPending
-          ? Array.from({ length: 5 }).map((_, i) => (
+          ? Array.from({ length: 4 }).map((_, i) => (
               <Card key={i} className="p-4">
                 <Skeleton className="h-3 w-24" />
                 <Skeleton className="mt-2 h-7 w-20" />
